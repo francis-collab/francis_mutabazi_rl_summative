@@ -43,7 +43,6 @@ francis_mutabazi_rl_summative/
 ├── models/dqn/  models/pg/
 ├── logs/
 ├── assets/
-├── notebooks/rwanda_cropguard_experiments.ipynb
 └── tests/
 ```
 
@@ -73,17 +72,7 @@ uv run evaluate.py --model models/dqn/best_model/dqn_model.pth --episodes 10
 
 ---
 
-## 4. Kaggle (GPU) notebook
-
-If local CPU is too slow, open `notebooks/rwanda_cropguard_experiments.ipynb` on Kaggle:
-
-1. GPU accelerator + Internet on  
-2. Upload / clone this repo  
-3. Run all cells → 40 experiments, plots, greedy eval, zip download  
-
----
-
-## 5. Environment design (mission match)
+## 4. Environment design (mission match)
 
 | Element | Design |
 |---------|--------|
@@ -95,7 +84,7 @@ If local CPU is too slow, open `notebooks/rwanda_cropguard_experiments.ipynb` on
 
 ---
 
-## 6. Video checklist
+## 5. Video checklist
 
 1. Entire screen + camera on  
 2. State problem, agent behaviour, reward, objective  
@@ -106,3 +95,29 @@ If local CPU is too slow, open `notebooks/rwanda_cropguard_experiments.ipynb` on
 
 **Course:** Machine Learning Techniques II – Summative  
 **Author:** Francis Mutabazi
+
+---
+
+## Updated play / visualisation (post-submission polish)
+
+```bash
+# Live 2D GUI (matplotlib) – best for video recording of decisions
+uv run main.py --mode play --model models/dqn/best_model/dqn_model.pth --episodes 1 --viz 2d --delay 0.4
+
+# Record trajectory + open Three.js 3D viewer (advanced simulation library)
+uv run main.py --mode play --model models/dqn/best_model/dqn_model.pth --episodes 1 --viz 3d --delay 0.3
+# Then open visualization/viewer_3d.html in a browser (Chrome/Firefox).
+# If file:// fetch is blocked, run:  python -m http.server 8000
+# and visit http://localhost:8000/visualization/viewer_3d.html
+```
+
+Reward shaping was refined so the agent is incentivised to:
+1. Move & inspect early
+2. Apply organic/chemical on high-disease plots
+3. Irrigate dry plots
+4. Harvest only near the end of the season
+
+Re-train after the reward change:
+```bash
+uv run main.py --mode train_dqn --total-steps 40000 --device cpu --exp-name reshaped
+```

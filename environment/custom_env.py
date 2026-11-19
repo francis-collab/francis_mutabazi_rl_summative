@@ -211,124 +211,126 @@ class RwandaCropGuardEnv(gym.Env):
         terminated = False
         truncated = False
 
-        # ---- Action effects ----
+        # ---- Action effects (shaped for: inspect early → treat → irrigate → harvest late) ----
+        day_frac = self._step_count / max(1, self.season_length)
+        early = max(0.0, 1.0 - day_frac)  # 1.0 at start → 0.0 at end
+
         if action == 0:  # INSPECT
             if self._labour > 0:
                 self._labour -= 1
                 self._inspected[self._current_plot] = True
-                # Early detection bonus proportional to true severity
-                sev = self._disease[self._current_plot]
-                if sev > 0.15:
-                    reward += 2.0 + 3.0 * sev  # strong incentive for early catch
+                sev = float(self._disease[self._current_plot])
+                # Modest detection reward – early season bonus, not farmable forever
+                if sev > 0.12:
+                    reward += 1.2 + 1.5 * sev * early
                 else:
-                    reward += 0.3
+                    reward += 0.25
             else:
-                reward -= 0.5  # wasted effort
+                reward -= 0.6
 
         elif action == 1:  # APPLY_ORGANIC
             if self._organic > 0 and self._labour > 0:
                 self._organic -= 1
                 self._labour -= 1
-                # Organic reduces disease moderately, improves moisture a little
-                self._disease[self._current_plot] = max(
-                    0.0, self._disease[self._current_plot] - 0.25
-                )
+                sev_before = float(self._disease[self._current_plot])
+                self._disease[self._current_plot] = max(0.0, sev_before - 0.28)
                 self._moisture[self._current_plot] = min(
-                    1.0, self._moisture[self._current_plot] + 0.05
+                    1.0, self._moisture[self._current_plot] + 0.06
                 )
-                reward += 1.5
+                # Reward scales with disease removed + early-treatment bonus
+                reward += 2.2 + 3.5 * sev_before * (0.4 + 0.6 * early)
             else:
-                reward -= 0.8
+                reward -= 0.9
 
         elif action == 2:  # APPLY_CHEMICAL
             if self._chemical > 0 and self._labour > 0:
                 self._chemical -= 1
                 self._labour -= 1
-                # Stronger immediate effect but limited stock
-                self._disease[self._current_plot] = max(
-                    0.0, self._disease[self._current_plot] - 0.45
-                )
-                reward += 2.0
+                sev_before = float(self._disease[self._current_plot])
+                self._disease[self._current_plot] = max(0.0, sev_before - 0.48)
+                # Stronger effect, still early-treatment bonus
+                reward += 2.8 + 4.0 * sev_before * (0.4 + 0.6 * early)
             else:
-                reward -= 1.0
+                reward -= 1.1
 
         elif action == 3:  # IRRIGATE
             if self._labour > 0:
                 self._labour -= 1
-                self._moisture[self._current_plot] = min(
-                    1.0, self._moisture[self._current_plot] + 0.25
-                )
-                # Healthy moisture slows disease progression later
-                reward += 0.8
+                moist_before = float(self._moisture[self._current_plot])
+                self._moisture[self._current_plot] = min(1.0, moist_before + 0.28)
+                # Higher reward when the plot was dry
+                dryness = 1.0 - moist_before
+                reward += 1.0 + 2.5 * dryness
             else:
-                reward -= 0.4
+                reward -= 0.5
 
         elif action == 4:  # MOVE_NEXT
             self._current_plot = (self._current_plot + 1) % self.num_plots
-            reward += 0.1  # small cost of movement already paid by time
+            # Small positive early (encourage coverage), neutral later
+            reward += 0.15 * early
 
         elif action == 5:  # ALERT_COMMUNITY
             if self._labour > 0:
                 self._labour -= 1
-                # Community response: modest disease reduction across all plots
-                # (models sharing knowledge / collective action)
-                self._disease = np.maximum(0.0, self._disease - 0.08)
-                reward += 1.2 + 0.5 * np.mean(self._disease)
+                mean_sev = float(np.mean(self._disease))
+                self._disease = np.maximum(0.0, self._disease - 0.10)
+                reward += 1.5 + 1.0 * mean_sev * early
             else:
-                reward -= 0.3
+                reward -= 0.4
 
         elif action == 6:  # WAIT_MONITOR
-            reward += 0.05  # very small positive for patience / observation
+            # Mild penalty – waiting while disease spreads is rarely optimal
+            reward -= 0.15
 
         elif action == 7:  # HARVEST
-            # Terminal action – compute final yield reward
             terminated = True
-            avg_health = 1.0 - np.mean(self._disease)
-            avg_moisture = np.mean(self._moisture)
-            final_yield = avg_health * (0.6 + 0.4 * avg_moisture)
-            reward += 15.0 * final_yield - 5.0 * self._yield_risk
-            # Bonus if chemical was conserved (sustainability)
+            avg_health = 1.0 - float(np.mean(self._disease))
+            avg_moisture = float(np.mean(self._moisture))
+            final_yield = avg_health * (0.55 + 0.45 * avg_moisture)
+            # Strong terminal yield signal
+            reward += 22.0 * final_yield - 6.0 * self._yield_risk
+            # Heavy penalty for harvesting too early
+            if self._step_count < int(0.75 * self.season_length):
+                reward -= 12.0
+            # Small sustainability bonus for unused chemical
             if self._chemical > 0:
-                reward += 1.5
+                reward += 1.0
 
         # ---- Environment dynamics (disease spread, weather, moisture decay) ----
         if not terminated:
-            # Disease natural progression + weather influence
             weather_stress = 1.0 + 0.4 * (1.0 - self._weather)
-            spread = self._rng.uniform(0.01, 0.04, size=self.num_plots) * weather_stress
-            # Neighbouring plots influence (simple ring)
+            spread = self._rng.uniform(0.012, 0.045, size=self.num_plots) * weather_stress
             for i in range(self.num_plots):
                 left = self._disease[(i - 1) % self.num_plots]
                 right = self._disease[(i + 1) % self.num_plots]
-                cross = 0.03 * (left + right) / 2.0
+                cross = 0.035 * (left + right) / 2.0
                 self._disease[i] = np.clip(
                     self._disease[i] + spread[i] + cross, 0.0, 1.0
                 )
 
-            # Moisture slowly declines
             self._moisture = np.clip(
                 self._moisture - self._rng.uniform(0.02, 0.05, size=self.num_plots),
                 0.0,
                 1.0,
             )
 
-            # Weather drifts
             self._weather = float(
                 np.clip(self._weather + self._rng.normal(0, 0.05), 0.1, 0.95)
             )
 
-            # Accumulate yield risk from high disease / low moisture
-            risk_inc = 0.15 * np.mean(self._disease) + 0.08 * (1.0 - np.mean(self._moisture))
+            risk_inc = 0.16 * np.mean(self._disease) + 0.09 * (1.0 - np.mean(self._moisture))
             self._yield_risk = min(1.0, self._yield_risk + risk_inc)
+
+            # Small ongoing cost of unmanaged disease (encourages treatment)
+            reward -= 0.35 * float(np.mean(self._disease))
 
             self._step_count += 1
             if self._step_count >= self.season_length:
                 truncated = True
-                # Forced end-of-season evaluation
-                avg_health = 1.0 - np.mean(self._disease)
-                avg_moisture = np.mean(self._moisture)
-                final_yield = avg_health * (0.6 + 0.4 * avg_moisture)
-                reward += 10.0 * final_yield - 4.0 * self._yield_risk
+                avg_health = 1.0 - float(np.mean(self._disease))
+                avg_moisture = float(np.mean(self._moisture))
+                final_yield = avg_health * (0.55 + 0.45 * avg_moisture)
+                reward += 18.0 * final_yield - 5.0 * self._yield_risk
 
         self._episode_reward += reward
         obs = self._get_obs()

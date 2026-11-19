@@ -6,6 +6,8 @@ Examples:
   uv run main.py --mode train_dqn --total-steps 40000 --device cpu
   uv run main.py --mode train_pg --algorithm ppo --total-steps 40000
   uv run main.py --mode evaluate --model models/dqn/best_model/dqn_model.pth
+  uv run main.py --mode play --model models/dqn/best_model/dqn_model.pth --episodes 1 --viz 2d
+  uv run main.py --mode play --model models/dqn/best_model/dqn_model.pth --episodes 1 --viz 3d
 """
 
 from __future__ import annotations
@@ -46,7 +48,7 @@ def main():
     parser = argparse.ArgumentParser(description="RwandaCropGuard RL summative")
     parser.add_argument(
         "--mode",
-        choices=["demo", "train_dqn", "train_pg", "evaluate"],
+        choices=["demo", "train_dqn", "train_pg", "evaluate", "play"],
         default="demo",
     )
     parser.add_argument("--algorithm", default="ppo", choices=["reinforce", "a2c", "ppo"])
@@ -58,13 +60,24 @@ def main():
     parser.add_argument("--device", type=str, default="cpu")
     parser.add_argument("--model", type=str, default="")
     parser.add_argument("--episodes", type=int, default=5)
+    parser.add_argument(
+        "--delay",
+        type=float,
+        default=0.35,
+        help="Pause between steps in play mode (seconds)",
+    )
+    parser.add_argument(
+        "--viz",
+        choices=["none", "2d", "3d"],
+        default="2d",
+        help="Play visualisation: none | 2d (matplotlib) | 3d (Three.js)",
+    )
     args = parser.parse_args()
 
     if args.mode == "demo":
         run_demo()
         return
 
-    # TorchRL is only imported for training / evaluation paths
     if args.mode == "train_dqn":
         from training.dqn_training import DQNConfig, train_dqn
 
@@ -107,6 +120,20 @@ def main():
             print("Please provide --model path")
             return
         print(load_and_evaluate(args.model, n_episodes=args.episodes))
+
+    elif args.mode == "play":
+        from evaluate import play_agent
+
+        if not args.model:
+            print("Please provide --model path")
+            return
+        play_agent(
+            args.model,
+            n_episodes=args.episodes,
+            deterministic=True,
+            delay=args.delay,
+            viz=args.viz,
+        )
 
 
 if __name__ == "__main__":

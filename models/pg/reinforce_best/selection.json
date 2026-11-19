@@ -1,4 +1,4 @@
 {
-  "source_experiment": "reinforce_exp02",
-  "greedy_mean": 2.4636229278040283
+  "source_experiment": "a2c_best",
+  "greedy_mean": 22.455986378251197
 }

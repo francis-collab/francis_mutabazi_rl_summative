@@ -2,6 +2,9 @@
 Run the full hyper-parameter study: 10 configs × 4 algorithms = 40 experiments.
 
 Uses TorchRL-wrapped RwandaCropGuardEnv for every run.
+
+uv run run_experiments.py --device cpu --total-steps 40000  # Runs all 40 experiments on CPU
+
 Best model per family is selected by greedy mean return.
 """
 
