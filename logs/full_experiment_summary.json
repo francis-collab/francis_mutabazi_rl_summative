@@ -1,0 +1,370 @@
+{
+  "dqn": [
+    {
+      "exp": "exp01",
+      "lr": 0.001,
+      "gamma": 0.99,
+      "batch_size": 64,
+      "mean_last20": 52.254339950293705,
+      "greedy_mean": 54.78897637084822,
+      "num_episodes": 1385
+    },
+    {
+      "exp": "exp02",
+      "lr": 0.0003,
+      "gamma": 0.99,
+      "batch_size": 64,
+      "mean_last20": 50.199729724207806,
+      "greedy_mean": 57.60769121137821,
+      "num_episodes": 1397
+    },
+    {
+      "exp": "exp03",
+      "lr": 0.0001,
+      "gamma": 0.99,
+      "batch_size": 64,
+      "mean_last20": 40.86494331378144,
+      "greedy_mean": 45.01023681622679,
+      "num_episodes": 1457
+    },
+    {
+      "exp": "exp04",
+      "lr": 0.001,
+      "gamma": 0.95,
+      "batch_size": 64,
+      "mean_last20": 37.95137345101569,
+      "greedy_mean": 48.17521414160353,
+      "num_episodes": 1396
+    },
+    {
+      "exp": "exp05",
+      "lr": 0.001,
+      "gamma": 0.99,
+      "batch_size": 128,
+      "mean_last20": 51.40106059998948,
+      "greedy_mean": 59.33425207613684,
+      "num_episodes": 1442
+    },
+    {
+      "exp": "exp06",
+      "lr": 0.001,
+      "gamma": 0.99,
+      "batch_size": 32,
+      "mean_last20": 50.79179244803938,
+      "greedy_mean": 59.267502939204306,
+      "num_episodes": 1413
+    },
+    {
+      "exp": "exp07",
+      "lr": 0.001,
+      "gamma": 0.99,
+      "batch_size": 64,
+      "mean_last20": 57.10038295422878,
+      "greedy_mean": 56.569437907513795,
+      "num_episodes": 1317
+    },
+    {
+      "exp": "exp08",
+      "lr": 0.001,
+      "gamma": 0.99,
+      "batch_size": 64,
+      "mean_last20": 51.14834028764239,
+      "greedy_mean": 59.007689958482594,
+      "num_episodes": 1127
+    },
+    {
+      "exp": "exp09",
+      "lr": 0.001,
+      "gamma": 0.99,
+      "batch_size": 64,
+      "mean_last20": 47.63558159105712,
+      "greedy_mean": 59.24648809882299,
+      "num_episodes": 1765
+    },
+    {
+      "exp": "exp10",
+      "lr": 0.0003,
+      "gamma": 0.99,
+      "batch_size": 128,
+      "mean_last20": 52.568898577071856,
+      "greedy_mean": 57.21475567234171,
+      "num_episodes": 1393
+    }
+  ],
+  "reinforce": [
+    {
+      "exp": "reinforce_exp01",
+      "lr": 0.0003,
+      "gamma": 0.99,
+      "entropy_coef": 0.01,
+      "mean_last20": 13.094466773708273,
+      "greedy_mean": 0.39188293719367256,
+      "num_episodes": 5056
+    },
+    {
+      "exp": "reinforce_exp02",
+      "lr": 0.0001,
+      "gamma": 0.99,
+      "entropy_coef": 0.01,
+      "mean_last20": 13.094466773708273,
+      "greedy_mean": 2.4636229278040283,
+      "num_episodes": 5098
+    },
+    {
+      "exp": "reinforce_exp03",
+      "lr": 0.001,
+      "gamma": 0.99,
+      "entropy_coef": 0.01,
+      "mean_last20": 13.136804756623985,
+      "greedy_mean": 1.163583088708026,
+      "num_episodes": 5052
+    },
+    {
+      "exp": "reinforce_exp04",
+      "lr": 0.0003,
+      "gamma": 0.95,
+      "entropy_coef": 0.01,
+      "mean_last20": 13.094466773708273,
+      "greedy_mean": 0.39188293719367256,
+      "num_episodes": 5056
+    },
+    {
+      "exp": "reinforce_exp05",
+      "lr": 0.0003,
+      "gamma": 0.99,
+      "entropy_coef": 0.001,
+      "mean_last20": 13.094466773708273,
+      "greedy_mean": 1.4255255071268462,
+      "num_episodes": 5053
+    },
+    {
+      "exp": "reinforce_exp06",
+      "lr": 0.0003,
+      "gamma": 0.99,
+      "entropy_coef": 0.05,
+      "mean_last20": 13.094466773708273,
+      "greedy_mean": -5.517109343375774,
+      "num_episodes": 5058
+    },
+    {
+      "exp": "reinforce_exp07",
+      "lr": 0.0003,
+      "gamma": 0.99,
+      "entropy_coef": 0.01,
+      "mean_last20": 13.094466773708273,
+      "greedy_mean": -11.671485122823482,
+      "num_episodes": 5047
+    },
+    {
+      "exp": "reinforce_exp08",
+      "lr": 0.0003,
+      "gamma": 0.99,
+      "entropy_coef": 0.01,
+      "mean_last20": 13.094466773708273,
+      "greedy_mean": -1.175484293930555,
+      "num_episodes": 5077
+    },
+    {
+      "exp": "reinforce_exp09",
+      "lr": 0.0005,
+      "gamma": 0.99,
+      "entropy_coef": 0.01,
+      "mean_last20": 13.094466773708273,
+      "greedy_mean": -5.513243880164131,
+      "num_episodes": 5049
+    },
+    {
+      "exp": "reinforce_exp10",
+      "lr": 0.0003,
+      "gamma": 0.995,
+      "entropy_coef": 0.01,
+      "mean_last20": 13.094466773708273,
+      "greedy_mean": 0.39188293719367256,
+      "num_episodes": 5056
+    }
+  ],
+  "a2c": [
+    {
+      "exp": "a2c_exp01",
+      "lr": 0.0003,
+      "gamma": 0.99,
+      "entropy_coef": 0.01,
+      "mean_last20": 17.442821053118305,
+      "greedy_mean": -3.9680140756211424,
+      "num_episodes": 7631
+    },
+    {
+      "exp": "a2c_exp02",
+      "lr": 0.0001,
+      "gamma": 0.99,
+      "entropy_coef": 0.01,
+      "mean_last20": 12.843054533509212,
+      "greedy_mean": 12.316824660422068,
+      "num_episodes": 6069
+    },
+    {
+      "exp": "a2c_exp03",
+      "lr": 0.001,
+      "gamma": 0.99,
+      "entropy_coef": 0.01,
+      "mean_last20": 20.69372743282262,
+      "greedy_mean": 19.12423187984277,
+      "num_episodes": 5024
+    },
+    {
+      "exp": "a2c_exp04",
+      "lr": 0.0003,
+      "gamma": 0.95,
+      "entropy_coef": 0.01,
+      "mean_last20": 12.829068964034573,
+      "greedy_mean": 12.316824660422068,
+      "num_episodes": 16471
+    },
+    {
+      "exp": "a2c_exp05",
+      "lr": 0.0003,
+      "gamma": 0.99,
+      "entropy_coef": 0.001,
+      "mean_last20": 17.261498180632227,
+      "greedy_mean": -3.9680140756211424,
+      "num_episodes": 7691
+    },
+    {
+      "exp": "a2c_exp06",
+      "lr": 0.0003,
+      "gamma": 0.99,
+      "entropy_coef": 0.05,
+      "mean_last20": 16.941886625325562,
+      "greedy_mean": -3.9680140756211424,
+      "num_episodes": 7424
+    },
+    {
+      "exp": "a2c_exp07",
+      "lr": 0.0003,
+      "gamma": 0.99,
+      "entropy_coef": 0.01,
+      "mean_last20": 20.224052004013007,
+      "greedy_mean": 18.27501880108521,
+      "num_episodes": 5984
+    },
+    {
+      "exp": "a2c_exp08",
+      "lr": 0.0003,
+      "gamma": 0.99,
+      "entropy_coef": 0.01,
+      "mean_last20": 13.036585352515436,
+      "greedy_mean": 12.316824660422068,
+      "num_episodes": 6999
+    },
+    {
+      "exp": "a2c_exp09",
+      "lr": 0.0005,
+      "gamma": 0.99,
+      "entropy_coef": 0.01,
+      "mean_last20": 17.529771625655158,
+      "greedy_mean": 5.821371932193048,
+      "num_episodes": 6235
+    },
+    {
+      "exp": "a2c_exp10",
+      "lr": 0.0003,
+      "gamma": 0.995,
+      "entropy_coef": 0.01,
+      "mean_last20": 17.35412789037547,
+      "greedy_mean": -3.9680140756211424,
+      "num_episodes": 7106
+    }
+  ],
+  "ppo": [
+    {
+      "exp": "ppo_exp01",
+      "lr": 0.0003,
+      "gamma": 0.99,
+      "entropy_coef": 0.01,
+      "mean_last20": 20.814279056189534,
+      "greedy_mean": 21.16833450091317,
+      "num_episodes": 4446
+    },
+    {
+      "exp": "ppo_exp02",
+      "lr": 0.0001,
+      "gamma": 0.99,
+      "entropy_coef": 0.01,
+      "mean_last20": 17.811927570822835,
+      "greedy_mean": -3.9680140756211424,
+      "num_episodes": 6463
+    },
+    {
+      "exp": "ppo_exp03",
+      "lr": 0.001,
+      "gamma": 0.99,
+      "entropy_coef": 0.01,
+      "mean_last20": 21.78667119578678,
+      "greedy_mean": 21.247062137579146,
+      "num_episodes": 3871
+    },
+    {
+      "exp": "ppo_exp04",
+      "lr": 0.0003,
+      "gamma": 0.95,
+      "entropy_coef": 0.01,
+      "mean_last20": 20.52657476212155,
+      "greedy_mean": 16.024456542349604,
+      "num_episodes": 6803
+    },
+    {
+      "exp": "ppo_exp05",
+      "lr": 0.0003,
+      "gamma": 0.99,
+      "entropy_coef": 0.001,
+      "mean_last20": 20.441994047065286,
+      "greedy_mean": 21.178609976278572,
+      "num_episodes": 4415
+    },
+    {
+      "exp": "ppo_exp06",
+      "lr": 0.0003,
+      "gamma": 0.99,
+      "entropy_coef": 0.05,
+      "mean_last20": 20.94339247383534,
+      "greedy_mean": 20.5128524320184,
+      "num_episodes": 4333
+    },
+    {
+      "exp": "ppo_exp07",
+      "lr": 0.0003,
+      "gamma": 0.99,
+      "entropy_coef": 0.01,
+      "mean_last20": 21.329383269039848,
+      "greedy_mean": 22.455986378251197,
+      "num_episodes": 3964
+    },
+    {
+      "exp": "ppo_exp08",
+      "lr": 0.0003,
+      "gamma": 0.99,
+      "entropy_coef": 0.01,
+      "mean_last20": 21.405220190641106,
+      "greedy_mean": 19.578987824683516,
+      "num_episodes": 5416
+    },
+    {
+      "exp": "ppo_exp09",
+      "lr": 0.0005,
+      "gamma": 0.99,
+      "entropy_coef": 0.01,
+      "mean_last20": 20.59200709514018,
+      "greedy_mean": 20.776734550508998,
+      "num_episodes": 4104
+    },
+    {
+      "exp": "ppo_exp10",
+      "lr": 0.0003,
+      "gamma": 0.995,
+      "entropy_coef": 0.01,
+      "mean_last20": 20.891478480043837,
+      "greedy_mean": 19.578987824683516,
+      "num_episodes": 4243
+    }
+  ]
+}
