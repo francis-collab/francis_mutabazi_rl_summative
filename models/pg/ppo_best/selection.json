@@ -1,4 +1,4 @@
 {
-  "source_experiment": "a2c_best",
-  "greedy_mean": 22.455986378251197
+  "source_experiment": "ppo_exp03",
+  "greedy_mean": 22.988067474669293
 }

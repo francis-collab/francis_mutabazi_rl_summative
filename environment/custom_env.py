@@ -211,20 +211,21 @@ class RwandaCropGuardEnv(gym.Env):
         terminated = False
         truncated = False
 
-        # ---- Action effects (shaped for: inspect early → treat → irrigate → harvest late) ----
+        # ---- Action effects (inspect early → treat immediately → irrigate dry → harvest late) ----
         day_frac = self._step_count / max(1, self.season_length)
-        early = max(0.0, 1.0 - day_frac)  # 1.0 at start → 0.0 at end
+        early = max(0.0, 1.0 - day_frac)          # 1 at start → 0 at end
+        mid_early = max(0.0, 1.0 - day_frac * 1.4)  # decays faster; strong only in first ~40%
 
         if action == 0:  # INSPECT
             if self._labour > 0:
                 self._labour -= 1
                 self._inspected[self._current_plot] = True
                 sev = float(self._disease[self._current_plot])
-                # Modest detection reward – early season bonus, not farmable forever
-                if sev > 0.12:
-                    reward += 1.2 + 1.5 * sev * early
+                # Detection is useful early; weak later so it cannot be farmed
+                if sev > 0.10:
+                    reward += 0.9 + 2.0 * sev * mid_early
                 else:
-                    reward += 0.25
+                    reward += 0.2 * mid_early
             else:
                 reward -= 0.6
 
@@ -233,83 +234,83 @@ class RwandaCropGuardEnv(gym.Env):
                 self._organic -= 1
                 self._labour -= 1
                 sev_before = float(self._disease[self._current_plot])
-                self._disease[self._current_plot] = max(0.0, sev_before - 0.28)
+                self._disease[self._current_plot] = max(0.0, sev_before - 0.30)
                 self._moisture[self._current_plot] = min(
                     1.0, self._moisture[self._current_plot] + 0.06
                 )
-                # Reward scales with disease removed + early-treatment bonus
-                reward += 2.2 + 3.5 * sev_before * (0.4 + 0.6 * early)
+                # Big bonus for treating sick plots early; extra if already inspected
+                inspected_bonus = 1.2 if self._inspected[self._current_plot] else 0.0
+                reward += 2.5 + 5.0 * sev_before * (0.35 + 0.65 * mid_early) + inspected_bonus
             else:
-                reward -= 0.9
+                reward -= 1.0
 
         elif action == 2:  # APPLY_CHEMICAL
             if self._chemical > 0 and self._labour > 0:
                 self._chemical -= 1
                 self._labour -= 1
                 sev_before = float(self._disease[self._current_plot])
-                self._disease[self._current_plot] = max(0.0, sev_before - 0.48)
-                # Stronger effect, still early-treatment bonus
-                reward += 2.8 + 4.0 * sev_before * (0.4 + 0.6 * early)
+                self._disease[self._current_plot] = max(0.0, sev_before - 0.50)
+                inspected_bonus = 1.2 if self._inspected[self._current_plot] else 0.0
+                reward += 3.0 + 5.5 * sev_before * (0.35 + 0.65 * mid_early) + inspected_bonus
             else:
-                reward -= 1.1
+                reward -= 1.2
 
         elif action == 3:  # IRRIGATE
             if self._labour > 0:
                 self._labour -= 1
                 moist_before = float(self._moisture[self._current_plot])
-                self._moisture[self._current_plot] = min(1.0, moist_before + 0.28)
-                # Higher reward when the plot was dry
+                self._moisture[self._current_plot] = min(1.0, moist_before + 0.30)
                 dryness = 1.0 - moist_before
-                reward += 1.0 + 2.5 * dryness
+                reward += 1.2 + 3.0 * dryness
             else:
                 reward -= 0.5
 
         elif action == 4:  # MOVE_NEXT
             self._current_plot = (self._current_plot + 1) % self.num_plots
-            # Small positive early (encourage coverage), neutral later
-            reward += 0.15 * early
+            # Encourage coverage early only
+            reward += 0.12 * mid_early
 
         elif action == 5:  # ALERT_COMMUNITY
             if self._labour > 0:
                 self._labour -= 1
                 mean_sev = float(np.mean(self._disease))
-                self._disease = np.maximum(0.0, self._disease - 0.10)
-                reward += 1.5 + 1.0 * mean_sev * early
+                self._disease = np.maximum(0.0, self._disease - 0.12)
+                reward += 2.0 + 1.5 * mean_sev * mid_early
             else:
                 reward -= 0.4
 
         elif action == 6:  # WAIT_MONITOR
-            # Mild penalty – waiting while disease spreads is rarely optimal
-            reward -= 0.15
+            reward -= 0.20
 
         elif action == 7:  # HARVEST
             terminated = True
             avg_health = 1.0 - float(np.mean(self._disease))
             avg_moisture = float(np.mean(self._moisture))
             final_yield = avg_health * (0.55 + 0.45 * avg_moisture)
-            # Strong terminal yield signal
-            reward += 22.0 * final_yield - 6.0 * self._yield_risk
-            # Heavy penalty for harvesting too early
-            if self._step_count < int(0.75 * self.season_length):
-                reward -= 12.0
-            # Small sustainability bonus for unused chemical
+            reward += 24.0 * final_yield - 7.0 * self._yield_risk
+            # Only allow good harvest near end of season
+            if self._step_count < int(0.82 * self.season_length):
+                reward -= 15.0
+            elif self._step_count < int(0.90 * self.season_length):
+                reward -= 5.0
             if self._chemical > 0:
-                reward += 1.0
+                reward += 0.8
 
-        # ---- Environment dynamics (disease spread, weather, moisture decay) ----
+        # ---- Environment dynamics ----
         if not terminated:
-            weather_stress = 1.0 + 0.4 * (1.0 - self._weather)
-            spread = self._rng.uniform(0.012, 0.045, size=self.num_plots) * weather_stress
+            # Slightly slower spread so timely treatment can keep plots healthy
+            weather_stress = 1.0 + 0.35 * (1.0 - self._weather)
+            spread = self._rng.uniform(0.010, 0.035, size=self.num_plots) * weather_stress
             for i in range(self.num_plots):
                 left = self._disease[(i - 1) % self.num_plots]
                 right = self._disease[(i + 1) % self.num_plots]
-                cross = 0.035 * (left + right) / 2.0
+                cross = 0.028 * (left + right) / 2.0
                 self._disease[i] = np.clip(
                     self._disease[i] + spread[i] + cross, 0.0, 1.0
                 )
 
             self._moisture = np.clip(
-                self._moisture - self._rng.uniform(0.02, 0.05, size=self.num_plots),
+                self._moisture - self._rng.uniform(0.02, 0.048, size=self.num_plots),
                 0.0,
                 1.0,
             )
@@ -318,11 +319,11 @@ class RwandaCropGuardEnv(gym.Env):
                 np.clip(self._weather + self._rng.normal(0, 0.05), 0.1, 0.95)
             )
 
-            risk_inc = 0.16 * np.mean(self._disease) + 0.09 * (1.0 - np.mean(self._moisture))
+            risk_inc = 0.14 * np.mean(self._disease) + 0.08 * (1.0 - np.mean(self._moisture))
             self._yield_risk = min(1.0, self._yield_risk + risk_inc)
 
-            # Small ongoing cost of unmanaged disease (encourages treatment)
-            reward -= 0.35 * float(np.mean(self._disease))
+            # Ongoing cost of unmanaged disease (stronger mid-season)
+            reward -= 0.45 * float(np.mean(self._disease)) * (0.5 + 0.5 * day_frac)
 
             self._step_count += 1
             if self._step_count >= self.season_length:
