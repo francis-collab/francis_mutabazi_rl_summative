@@ -3,8 +3,8 @@ RwandaCropGuard entry point.
 
 Examples:
   uv run main.py --mode demo
-  uv run main.py --mode train_dqn --total-steps 40000 --device cpu
-  uv run main.py --mode train_pg --algorithm ppo --total-steps 40000
+  uv run main.py --mode train_dqn --total-steps 80000 --device cpu
+  uv run main.py --mode train_pg --algorithm ppo --total-steps 80000
   uv run main.py --mode evaluate --model models/dqn/best_model/dqn_model.pth
   uv run main.py --mode play --model models/dqn/best_model/dqn_model.pth --episodes 1 --viz 2d
   uv run main.py --mode play --model models/dqn/best_model/dqn_model.pth --episodes 1 --viz 3d
@@ -55,7 +55,7 @@ def main():
     parser.add_argument("--exp-name", default="exp01")
     parser.add_argument("--lr", type=float, default=None)
     parser.add_argument("--gamma", type=float, default=0.99)
-    parser.add_argument("--total-steps", type=int, default=40_000)
+    parser.add_argument("--total-steps", type=int, default=80_000)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--device", type=str, default="cpu")
     parser.add_argument("--model", type=str, default="")

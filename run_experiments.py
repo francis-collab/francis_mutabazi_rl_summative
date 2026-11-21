@@ -1,9 +1,13 @@
 """
 Run the full hyper-parameter study: 10 configs × 4 algorithms = 40 experiments.
 
-Uses TorchRL-wrapped RwandaCropGuardEnv for every run.
+Trains directly against the Gymnasium-compatible RwandaCropGuardEnv.
 
-uv run run_experiments.py --device cpu --total-steps 40000  # Runs all 40 experiments on CPU
+uv run run_experiments.py --device cpu --total-steps 80000  # Runs all 40 experiments on CPU 
+
+Optional: only one family
+  uv run run_experiments.py --device cpu --total-steps 80000 --only dqn
+  uv run run_experiments.py --device cpu --total-steps 80000 --only ppo
 
 Best model per family is selected by greedy mean return.
 """
@@ -29,6 +33,19 @@ def select_best(family_dir: Path, model_filename: str) -> None:
             continue
         greedy_path = exp_dir / "greedy_eval.json"
         results_path = exp_dir / "results.json"
+        # Ignore legacy four-plot checkpoints (18 inputs); the current six-plot
+        # environment has 24 inputs. Never select an incompatible checkpoint.
+        candidate_model = exp_dir / model_filename
+        if candidate_model.exists():
+            try:
+                import torch
+                ckpt = torch.load(candidate_model, map_location="cpu", weights_only=False)
+                if int(ckpt.get("obs_dim", -1)) != 24:
+                    continue
+            except Exception:
+                continue
+        else:
+            continue
         score = None
         if greedy_path.exists():
             score = json.loads(greedy_path.read_text())["mean_return"]
@@ -123,8 +140,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--device", default="cpu", choices=["cpu", "cuda"])
     parser.add_argument("--only", default="all", choices=["all", "dqn", "reinforce", "a2c", "ppo"])
-    parser.add_argument("--total-steps", type=int, default=40_000,
-                        help="Environment steps per experiment (default 40000 ≈ 650–700 episodes)")
+    parser.add_argument("--total-steps", type=int, default=80_000,
+                        help="Environment steps per experiment (default 80000 ≈ 650–700 episodes)")
     args = parser.parse_args()
 
     Path("models/dqn").mkdir(parents=True, exist_ok=True)

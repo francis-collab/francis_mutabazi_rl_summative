@@ -38,10 +38,10 @@ class DQNConfig:
     buffer_size: int = 20_000
     eps_start: float = 1.0
     eps_end: float = 0.05
-    eps_decay_steps: int = 12_000
+    eps_decay_steps: int = 25_000
     target_update_freq: int = 250
     train_start: int = 1_000
-    total_steps: int = 40_000
+    total_steps: int = 80_000
     hidden: int = 128
     seed: int = 42
     device: str = "cpu"

@@ -89,7 +89,10 @@ def _snapshot(env: RwandaCropGuardEnv, action: int | None, reward: float, total:
     """Serialise one environment frame for the Three.js viewer."""
     return {
         "day": int(env._step_count),
+        "season_length": int(env.season_length),
         "plot": int(env._current_plot),
+        "crop_type": env.CROP_TYPES[int(env._current_plot)],
+        "crop_types": list(env.CROP_TYPES),
         "disease": [float(x) for x in env._disease],
         "moisture": [float(x) for x in env._moisture],
         "chemical": int(env._chemical),
@@ -109,7 +112,7 @@ def play_agent(
     n_episodes: int = 1,
     deterministic: bool = True,
     delay: float = 0.35,
-    max_steps: int = 70,
+    max_steps: int = 120,
     viz: str = "2d",
 ) -> None:
     """
@@ -120,9 +123,6 @@ def play_agent(
       - 2d   : live matplotlib 2D farm GUI
       - 3d   : record trajectory + open Three.js 3D viewer (advanced)
     """
-    import matplotlib.pyplot as plt
-    from matplotlib.patches import Rectangle, Circle, FancyBboxPatch
-
     net, kind, _ = _load_network(model_path)
     env = RwandaCropGuardEnv(render_mode="rgb_array")
 
@@ -133,9 +133,11 @@ def play_agent(
     print("=" * 70)
 
     trajectory: List[dict] = []
-    show_gui = viz in ("2d", "3d")
+    show_gui = viz == "2d"
 
     if show_gui:
+        import matplotlib.pyplot as plt
+        from matplotlib.patches import Rectangle, Circle, FancyBboxPatch
         plt.ion()
         fig, ax = plt.subplots(figsize=(10, 5.5))
         title = "RwandaCropGuard – 2D Live Farm View" if viz == "2d" else "RwandaCropGuard – recording for 3D viewer"
@@ -170,7 +172,7 @@ def play_agent(
                     facecolor=(0.85, 0.12, 0.08, 0.70), edgecolor="none", zorder=3
                 )
                 ax.add_patch(drect)
-            ax.text(i + 0.5, 0.42, f"Plot {i}", ha="center", fontsize=9,
+            ax.text(i + 0.5, 0.42, f"P{i} {env.CROP_TYPES[i].title()}", ha="center", fontsize=8,
                     fontweight="bold", color="#333")
             ax.text(i + 0.5, 0.18, f"D={sev:.2f}  M={moist:.2f}",
                     ha="center", fontsize=7.5, color="#444")
@@ -205,7 +207,7 @@ def play_agent(
         if show_gui:
             draw_2d(env, ax, total, last_name)
 
-        while not done and steps < max_steps:
+        while not done and steps < max(max_steps, env.season_length + 15):
             action = _select_action(net, kind, obs, deterministic=deterministic)
             obs, reward, terminated, truncated, info = env.step(action)
             total += float(reward)
@@ -248,15 +250,19 @@ def play_agent(
         print("\n" + "=" * 70)
         print("3D VIEWER (Three.js – advanced simulation library)")
         print("=" * 70)
-        print(f"1. Open this file in a browser:  {viewer}")
-        print(f"2. It loads:  {traj_path.resolve()}")
-        print("3. Press Play to watch the agent walk the Rwandan plots in 3D.")
+        print("WSL / Linux: do NOT use file:// (gio will fail). Serve the project:")
+        print("  cd ~/francis_mutabazi_rl_summative")
+        print("  python -m http.server 8000")
+        print("Then in Windows browser open:")
+        print("  http://localhost:8000/visualization/viewer_3d.html")
+        print(f"(Viewer file: {viewer})")
+        print(f"(Trajectory:  {traj_path.resolve()})")
+        print("Press Play in the page to watch the agent.")
         print("=" * 70)
-        try:
-            import webbrowser
-            webbrowser.open(viewer.as_uri())
-        except Exception:
-            pass
+        # Do not call webbrowser on WSL (gio fails). User opens the URL manually.
+        print("NOTE: Start the server in another terminal if needed:")
+        print("  python -m http.server 8000")
+
 
     if show_gui:
         print("\nClose the matplotlib window when you finish recording.")

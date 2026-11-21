@@ -39,7 +39,7 @@ class PGConfig:
     clip_epsilon: float = 0.2  # PPO
     ppo_epochs: int = 4
     rollout_steps: int = 256
-    total_steps: int = 40_000
+    total_steps: int = 80_000
     hidden: int = 128
     seed: int = 42
     device: str = "cpu"
