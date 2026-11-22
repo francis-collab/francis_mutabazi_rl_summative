@@ -23,7 +23,10 @@ import torch.nn.functional as F
 from torch import optim
 from tqdm import trange
 
-from torchrl.envs import GymWrapper
+try:
+    from torchrl.envs import GymWrapper
+except ImportError:
+    GymWrapper = None
 
 from environment.custom_env import RwandaCropGuardEnv
 from training.networks import ActorCriticNet, PolicyNet
@@ -60,6 +63,9 @@ def make_gym_env(seed: int | None = None) -> RwandaCropGuardEnv:
 
 def make_torchrl_env(seed: int | None = None):
     base = make_gym_env(seed)
+    if GymWrapper is None:
+        print("[warn] TorchRL GymWrapper unavailable in this interpreter; using base Gymnasium env for smoke testing.")
+        return base
     try:
         return GymWrapper(base, categorical_action_encoding=True)
     except Exception as exc:
@@ -114,16 +120,18 @@ def train_pg(cfg: PGConfig) -> Dict:
     pbar = trange(cfg.total_steps, desc=f"{cfg.algorithm.upper()} {cfg.exp_name}", leave=False)
     while global_step < cfg.total_steps:
         # ----- collect rollout -----
-        obs_buf, act_buf, logp_buf, rew_buf, done_buf, val_buf = [], [], [], [], [], []
+        obs_buf, act_buf, logp_buf, rew_buf, done_buf, val_buf, mask_buf = [], [], [], [], [], [], []
         for _ in range(cfg.rollout_steps):
             obs_t = torch.as_tensor(obs, dtype=torch.float32, device=device).unsqueeze(0)
+            mask_t = torch.as_tensor(env.action_mask(), dtype=torch.bool, device=device).unsqueeze(0)
             with torch.no_grad():
                 if cfg.algorithm == "reinforce":
-                    dist = model(obs_t)
+                    logits = model.mlp(obs_t)
                     value = torch.tensor([0.0], device=device)
                 else:
                     logits, value = model(obs_t)
-                    dist = torch.distributions.Categorical(logits=logits)
+                logits = logits.masked_fill(~mask_t, -1e9)
+                dist = torch.distributions.Categorical(logits=logits)
                 action = dist.sample()
                 logp = dist.log_prob(action)
 
@@ -136,6 +144,7 @@ def train_pg(cfg: PGConfig) -> Dict:
             rew_buf.append(float(reward))
             done_buf.append(float(done))
             val_buf.append(float(value.item()))
+            mask_buf.append(mask_t.squeeze(0).cpu())
 
             ep_ret += float(reward)
             obs = next_obs
@@ -166,7 +175,9 @@ def train_pg(cfg: PGConfig) -> Dict:
             loss = -(logps * R).mean()
             # entropy bonus
             obs_b = torch.stack(obs_buf).to(device)
-            dist = model(obs_b)
+            mask_b = torch.stack(mask_buf).to(device)
+            logits = model.mlp(obs_b).masked_fill(~mask_b, -1e9)
+            dist = torch.distributions.Categorical(logits=logits)
             loss = loss - cfg.entropy_coef * dist.entropy().mean()
             optimizer.zero_grad()
             loss.backward()
@@ -180,7 +191,9 @@ def train_pg(cfg: PGConfig) -> Dict:
             advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
             obs_b = torch.stack(obs_buf).to(device)
             act_b = torch.stack(act_buf).to(device)
+            mask_b = torch.stack(mask_buf).to(device)
             logits, values = model(obs_b)
+            logits = logits.masked_fill(~mask_b, -1e9)
             dist = torch.distributions.Categorical(logits=logits)
             logp = dist.log_prob(act_b)
             entropy = dist.entropy().mean()
@@ -199,12 +212,14 @@ def train_pg(cfg: PGConfig) -> Dict:
             advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
             obs_b = torch.stack(obs_buf).to(device)
             act_b = torch.stack(act_buf).to(device)
+            mask_b = torch.stack(mask_buf).to(device)
             old_logp = torch.stack(logp_buf).to(device).detach()
             adv = advantages.to(device)
             ret = returns.to(device)
 
             for _ in range(cfg.ppo_epochs):
                 logits, values = model(obs_b)
+                logits = logits.masked_fill(~mask_b, -1e9)
                 dist = torch.distributions.Categorical(logits=logits)
                 logp = dist.log_prob(act_b)
                 ratio = torch.exp(logp - old_logp)

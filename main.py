@@ -5,9 +5,9 @@ Examples:
   uv run main.py --mode demo
   uv run main.py --mode train_dqn --total-steps 80000 --device cpu
   uv run main.py --mode train_pg --algorithm ppo --total-steps 80000
-  uv run main.py --mode evaluate --model models/dqn/best_model/dqn_model.pth
-  uv run main.py --mode play --model models/dqn/best_model/dqn_model.pth --episodes 1 --viz 2d
-  uv run main.py --mode play --model models/dqn/best_model/dqn_model.pth --episodes 1 --viz 3d
+  uv run main.py --mode evaluate --model models/pg/best_model/ppo_model.pth
+  uv run main.py --mode play --model models/pg/best_model/ppo_model.pth --episodes 1 --viz 2d
+  uv run main.py --mode play --model models/pg/best_model/ppo_model.pth --episodes 1 --viz 3d
 """
 
 from __future__ import annotations
@@ -58,19 +58,19 @@ def main():
     parser.add_argument("--total-steps", type=int, default=80_000)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--device", type=str, default="cpu")
-    parser.add_argument("--model", type=str, default="")
+    parser.add_argument("--model", type=str, default="models/pg/best_model/ppo_model.pth")
     parser.add_argument("--episodes", type=int, default=5)
     parser.add_argument(
         "--delay",
         type=float,
-        default=0.35,
-        help="Pause between steps in play mode (seconds)",
+        default=1.2,
+        help="Pause between steps in play mode (seconds); 1.2s keeps a 90-day demo near 2 minutes",
     )
     parser.add_argument(
         "--viz",
         choices=["none", "2d", "3d"],
-        default="2d",
-        help="Play visualisation: none | 2d (matplotlib) | 3d (Three.js)",
+        default="3d",
+        help="Play visualisation: 3d (Three.js default) | 2d (matplotlib) | none",
     )
     args = parser.parse_args()
 

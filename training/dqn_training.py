@@ -22,9 +22,15 @@ import torch.nn.functional as F
 from torch import optim
 from tqdm import trange
 
-from torchrl.envs import GymWrapper
-from torchrl.data import TensorDictReplayBuffer, LazyTensorStorage
-from tensordict import TensorDict
+try:
+    from torchrl.envs import GymWrapper
+    from torchrl.data import TensorDictReplayBuffer, LazyTensorStorage
+    from tensordict import TensorDict
+    TORCHRL_AVAILABLE = True
+except ImportError:
+    GymWrapper = None
+    TensorDictReplayBuffer = LazyTensorStorage = TensorDict = None
+    TORCHRL_AVAILABLE = False
 
 from environment.custom_env import RwandaCropGuardEnv
 from training.networks import QNet
@@ -62,6 +68,10 @@ def make_torchrl_env(seed: int | None = None):
     TorchRL's TensorDictReplayBuffer but step the base Gymnasium env.
     """
     base = RwandaCropGuardEnv(seed=seed)
+    if not TORCHRL_AVAILABLE:
+        print("[warn] TorchRL unavailable in this interpreter; using Gymnasium environment and local replay buffer for smoke testing.")
+        base._base_gym = base
+        return base
     try:
         env = GymWrapper(base, categorical_action_encoding=True)
         env._base_gym = base
@@ -97,11 +107,18 @@ def train_dqn(cfg: DQNConfig) -> Dict:
     target.eval()
     optimizer = optim.Adam(online.parameters(), lr=cfg.lr)
 
-    # TorchRL replay buffer (TensorDict storage)
-    rb = TensorDictReplayBuffer(
-        storage=LazyTensorStorage(cfg.buffer_size),
-        batch_size=cfg.batch_size,
-    )
+    # Prefer the required TorchRL replay buffer. A small local fallback is kept
+    # only so the environment can be smoke-tested where TorchRL is not installed.
+    if TORCHRL_AVAILABLE:
+        rb = TensorDictReplayBuffer(
+            storage=LazyTensorStorage(cfg.buffer_size),
+            batch_size=cfg.batch_size,
+        )
+        local_rb = None
+    else:
+        from collections import deque
+        rb = None
+        local_rb = deque(maxlen=cfg.buffer_size)
 
     episode_returns: List[float] = []
     losses: List[float] = []
@@ -112,27 +129,38 @@ def train_dqn(cfg: DQNConfig) -> Dict:
         eps = epsilon_by_step(step, cfg)
         obs_t = torch.as_tensor(np.asarray(obs), dtype=torch.float32, device=device).unsqueeze(0)
 
+        valid_mask = env.action_mask()
+        valid_actions = np.flatnonzero(valid_mask)
         if random.random() < eps:
-            action = int(env.action_space.sample())
+            action = int(random.choice(valid_actions.tolist()))
         else:
             with torch.no_grad():
-                action = int(online(obs_t).argmax(dim=-1).item())
+                q_values = online(obs_t).squeeze(0)
+                q_values[~torch.as_tensor(valid_mask, dtype=torch.bool, device=device)] = -1e9
+                action = int(q_values.argmax().item())
 
-        next_obs_np, reward, terminated, truncated, _ = env.step(action)
+        next_obs_np, reward, terminated, truncated, next_info = env.step(action)
+        next_mask = env.action_mask()
         done = bool(terminated or truncated)
         ep_ret += float(reward)
 
-        transition = TensorDict(
-            {
-                "obs": torch.as_tensor(np.asarray(obs), dtype=torch.float32),
-                "action": torch.tensor(action, dtype=torch.int64),
-                "reward": torch.tensor(reward, dtype=torch.float32),
-                "next_obs": torch.as_tensor(np.asarray(next_obs_np), dtype=torch.float32),
-                "done": torch.tensor(done, dtype=torch.bool),
-            },
-            batch_size=[],
-        )
-        rb.add(transition)
+        if TORCHRL_AVAILABLE:
+            transition = TensorDict(
+                {
+                    "obs": torch.as_tensor(np.asarray(obs), dtype=torch.float32),
+                    "action": torch.tensor(action, dtype=torch.int64),
+                    "reward": torch.tensor(reward, dtype=torch.float32),
+                    "next_obs": torch.as_tensor(np.asarray(next_obs_np), dtype=torch.float32),
+                    "done": torch.tensor(done, dtype=torch.bool),
+                    "next_mask": torch.as_tensor(next_mask, dtype=torch.bool),
+                },
+                batch_size=[],
+            )
+            rb.add(transition)
+        else:
+            local_rb.append((np.asarray(obs, dtype=np.float32).copy(), action,
+                             float(reward), np.asarray(next_obs_np, dtype=np.float32).copy(),
+                             done, next_mask.copy()))
 
         obs = next_obs_np
         if done:
@@ -141,17 +169,31 @@ def train_dqn(cfg: DQNConfig) -> Dict:
             reset_out = env.reset()
             obs = reset_out[0] if isinstance(reset_out, tuple) else reset_out
 
-        if step >= cfg.train_start and len(rb) >= cfg.batch_size:
-            batch = rb.sample()
-            b_obs = batch["obs"].to(device)
-            b_act = batch["action"].to(device)
-            b_rew = batch["reward"].to(device)
-            b_next = batch["next_obs"].to(device)
-            b_done = batch["done"].to(device).float()
+        replay_size = len(rb) if TORCHRL_AVAILABLE else len(local_rb)
+        if step >= cfg.train_start and replay_size >= cfg.batch_size:
+            if TORCHRL_AVAILABLE:
+                batch = rb.sample()
+                b_obs = batch["obs"].to(device)
+                b_act = batch["action"].to(device)
+                b_rew = batch["reward"].to(device)
+                b_next = batch["next_obs"].to(device)
+                b_done = batch["done"].to(device).float()
+                b_next_mask = batch["next_mask"].to(device).bool()
+            else:
+                samples = random.sample(local_rb, cfg.batch_size)
+                so, sa, sr, sn, sd, sm = zip(*samples)
+                b_obs = torch.as_tensor(np.stack(so), dtype=torch.float32, device=device)
+                b_act = torch.as_tensor(sa, dtype=torch.int64, device=device)
+                b_rew = torch.as_tensor(sr, dtype=torch.float32, device=device)
+                b_next = torch.as_tensor(np.stack(sn), dtype=torch.float32, device=device)
+                b_done = torch.as_tensor(sd, dtype=torch.float32, device=device)
+                b_next_mask = torch.as_tensor(np.stack(sm), dtype=torch.bool, device=device)
 
             q = online(b_obs).gather(1, b_act.view(-1, 1)).squeeze(1)
             with torch.no_grad():
-                next_q = target(b_next).max(dim=1).values
+                next_values = target(b_next).masked_fill(~b_next_mask, -1e9)
+                next_q = next_values.max(dim=1).values
+                next_q = torch.where(b_done.bool(), torch.zeros_like(next_q), next_q)
                 y = b_rew + cfg.gamma * next_q * (1.0 - b_done)
             loss = F.smooth_l1_loss(q, y)
             optimizer.zero_grad()

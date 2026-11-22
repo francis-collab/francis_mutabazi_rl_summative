@@ -39,17 +39,28 @@ def _load_network(model_path: str) -> Tuple[torch.nn.Module, str, int]:
     return net, kind, n_actions
 
 
-def _select_action(net, kind: str, obs, deterministic: bool = True) -> int:
+def _select_action(net, kind, obs, deterministic: bool = True, action_mask=None) -> int:
     obs_t = torch.as_tensor(obs, dtype=torch.float32).unsqueeze(0)
+    mask_t = None
+    if action_mask is not None:
+        mask_t = torch.as_tensor(action_mask, dtype=torch.bool).unsqueeze(0)
     with torch.no_grad():
         if kind == "dqn":
-            return int(net(obs_t).argmax(dim=-1).item())
+            q = net(obs_t)
+            if mask_t is not None:
+                q = q.masked_fill(~mask_t, -1e9)
+            return int(q.argmax(dim=-1).item())
         if kind == "reinforce":
-            dist = net(obs_t)
+            logits = net.mlp(obs_t)
+            if mask_t is not None:
+                logits = logits.masked_fill(~mask_t, -1e9)
+            dist = torch.distributions.Categorical(logits=logits)
             if deterministic:
                 return int(dist.probs.argmax(dim=-1).item())
             return int(dist.sample().item())
         logits, _ = net(obs_t)
+        if mask_t is not None:
+            logits = logits.masked_fill(~mask_t, -1e9)
         if deterministic:
             return int(logits.argmax(dim=-1).item())
         return int(torch.distributions.Categorical(logits=logits).sample().item())
@@ -64,24 +75,31 @@ def load_and_evaluate(
     net, kind, _ = _load_network(model_path)
     env = RwandaCropGuardEnv()
     returns = []
+    harvest_days = []
+    harvested_flags = []
     for ep in range(n_episodes):
         obs, _ = env.reset(seed=1000 + ep)
         done = False
         total = 0.0
         steps = 0
+        final_info = {}
         while not done and steps < env.season_length + 5:
-            action = _select_action(net, kind, obs, deterministic=deterministic)
-            obs, reward, terminated, truncated, _ = env.step(action)
+            action = _select_action(net, kind, obs, deterministic=deterministic, action_mask=env.action_mask())
+            obs, reward, terminated, truncated, final_info = env.step(action)
             total += float(reward)
             done = bool(terminated or truncated)
             steps += 1
         returns.append(total)
+        harvested_flags.append(bool(final_info.get("harvested", False)))
+        harvest_days.append(int(final_info.get("day", env._step_count)))
     env.close()
     return {
         "model": model_path,
         "mean_return": float(np.mean(returns)),
         "std_return": float(np.std(returns)),
         "returns": returns,
+        "harvest_rate": float(np.mean(harvested_flags)),
+        "harvest_days": harvest_days,
     }
 
 
@@ -100,6 +118,13 @@ def _snapshot(env: RwandaCropGuardEnv, action: int | None, reward: float, total:
         "labour": int(env._labour),
         "weather": float(env._weather),
         "yield_risk": float(env._yield_risk),
+        "crop_growth": [float(x) for x in env._get_info()["crop_growth"]],
+        "crop_health": [float(x) for x in env._get_info()["crop_health"]],
+        "water": int(env._water),
+        "weather_state": env._get_info()["weather_state"],
+        "alerted": bool(env._alerted),
+        "harvested": bool(env._harvested),
+        "inspected": [bool(x) for x in env._inspected],
         "action": int(action) if action is not None else None,
         "action_name": env.ACTIONS[action] if action is not None else "RESET",
         "reward": float(reward),
@@ -111,7 +136,7 @@ def play_agent(
     model_path: str,
     n_episodes: int = 1,
     deterministic: bool = True,
-    delay: float = 0.35,
+    delay: float = 1.2,
     max_steps: int = 120,
     viz: str = "2d",
 ) -> None:
@@ -177,10 +202,19 @@ def play_agent(
             ax.text(i + 0.5, 0.18, f"D={sev:.2f}  M={moist:.2f}",
                     ha="center", fontsize=7.5, color="#444")
             if i == env._current_plot:
-                circ = Circle((i + 0.5, 3.15), 0.24, facecolor="#ffc107",
-                              edgecolor="#e65100", lw=2, zorder=6)
-                ax.add_patch(circ)
-                ax.text(i + 0.5, 3.55, "AGENT", ha="center", fontsize=8,
+                # Simple humanoid marker instead of the old circular pointer.
+                cx, cy = i + 0.5, 3.10
+                ax.add_patch(Circle((cx, cy + 0.22), 0.075, facecolor="#8d5b3e",
+                                    edgecolor="#3e2723", lw=1.1, zorder=7))
+                ax.plot([cx, cx], [cy + 0.14, cy - 0.10], color="#245eaa",
+                        lw=5, solid_capstyle="round", zorder=6)
+                ax.plot([cx - 0.15, cx + 0.15], [cy + 0.08, cy + 0.02],
+                        color="#8d5b3e", lw=3, solid_capstyle="round", zorder=6)
+                ax.plot([cx, cx - 0.10], [cy - 0.10, cy - 0.30],
+                        color="#49372d", lw=3, solid_capstyle="round", zorder=6)
+                ax.plot([cx, cx + 0.10], [cy - 0.10, cy - 0.30],
+                        color="#49372d", lw=3, solid_capstyle="round", zorder=6)
+                ax.text(cx, 3.55, "AGENT", ha="center", fontsize=8,
                         fontweight="bold", color="#e65100")
         ax.text(
             0.15, 4.05,
@@ -208,7 +242,7 @@ def play_agent(
             draw_2d(env, ax, total, last_name)
 
         while not done and steps < max(max_steps, env.season_length + 15):
-            action = _select_action(net, kind, obs, deterministic=deterministic)
+            action = _select_action(net, kind, obs, deterministic=deterministic, action_mask=env.action_mask())
             obs, reward, terminated, truncated, info = env.step(action)
             total += float(reward)
             done = bool(terminated or truncated)
