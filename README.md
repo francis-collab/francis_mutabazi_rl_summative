@@ -173,3 +173,12 @@ uv run pytest -q
 The tests cover the six-plot layout, 26-value observation, inspection/navigation constraints, all-plot irrigation, one-time alert and harvest terminal logic.
 
 The latest trajectory is saved in `assets/trajectories/latest_trajectory.json`.
+
+
+## License
+
+This project can be used for educational purposes
+
+## Author
+
+Francis Mutabazi, as aspiring ML Engineer
