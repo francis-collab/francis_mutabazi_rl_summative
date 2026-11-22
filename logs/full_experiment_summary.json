@@ -5,35 +5,35 @@
       "lr": 0.001,
       "gamma": 0.99,
       "batch_size": 64,
-      "mean_last20": 231.3705231692249,
-      "greedy_mean": 205.4635710662928,
-      "num_episodes": 938
+      "mean_last20": 248.31350700569024,
+      "greedy_mean": 245.86853251854828,
+      "num_episodes": 987
     },
     {
       "exp": "exp02",
       "lr": 0.0003,
       "gamma": 0.99,
       "batch_size": 64,
-      "mean_last20": 238.38102259704186,
-      "greedy_mean": 242.10753270923047,
-      "num_episodes": 972
+      "mean_last20": 216.51718733353135,
+      "greedy_mean": 222.30341976244654,
+      "num_episodes": 1003
     },
     {
       "exp": "exp03",
       "lr": 0.0001,
       "gamma": 0.99,
       "batch_size": 64,
-      "mean_last20": 220.87883588116907,
-      "greedy_mean": 222.12595338988103,
-      "num_episodes": 965
+      "mean_last20": 180.6525372682535,
+      "greedy_mean": 183.99244920983793,
+      "num_episodes": 993
     },
     {
       "exp": "exp04",
       "lr": 0.001,
       "gamma": 0.95,
       "batch_size": 64,
-      "mean_last20": 217.83546571511255,
-      "greedy_mean": 207.6836208123591,
+      "mean_last20": 244.21369297084962,
+      "greedy_mean": 250.50216392719304,
       "num_episodes": 1009
     },
     {
@@ -41,54 +41,54 @@
       "lr": 0.001,
       "gamma": 0.99,
       "batch_size": 128,
-      "mean_last20": 243.15525345160123,
-      "greedy_mean": 252.8190186712107,
-      "num_episodes": 924
+      "mean_last20": 251.38018514422987,
+      "greedy_mean": 265.8288596611812,
+      "num_episodes": 977
     },
     {
       "exp": "exp06",
       "lr": 0.001,
       "gamma": 0.99,
       "batch_size": 32,
-      "mean_last20": 221.38847394126,
-      "greedy_mean": 234.88500712034607,
-      "num_episodes": 930
+      "mean_last20": 254.13390240678314,
+      "greedy_mean": 259.97664194002635,
+      "num_episodes": 988
     },
     {
       "exp": "exp07",
       "lr": 0.001,
       "gamma": 0.99,
       "batch_size": 64,
-      "mean_last20": 248.42422194779087,
-      "greedy_mean": 255.7349339156135,
-      "num_episodes": 932
+      "mean_last20": 259.6718357565604,
+      "greedy_mean": 263.93176780150367,
+      "num_episodes": 985
     },
     {
       "exp": "exp08",
       "lr": 0.001,
       "gamma": 0.99,
       "batch_size": 64,
-      "mean_last20": 244.34757134037537,
-      "greedy_mean": 254.1197892814579,
-      "num_episodes": 953
+      "mean_last20": 246.3915184573096,
+      "greedy_mean": 256.085197445989,
+      "num_episodes": 1000
     },
     {
       "exp": "exp09",
       "lr": 0.001,
       "gamma": 0.99,
       "batch_size": 64,
-      "mean_last20": 222.03306660863282,
-      "greedy_mean": 224.4630545554756,
-      "num_episodes": 930
+      "mean_last20": 252.89997510025538,
+      "greedy_mean": 252.39021732847064,
+      "num_episodes": 983
     },
     {
       "exp": "exp10",
       "lr": 0.0003,
       "gamma": 0.99,
       "batch_size": 128,
-      "mean_last20": 243.89068560479677,
-      "greedy_mean": 246.1367119768971,
-      "num_episodes": 975
+      "mean_last20": 241.10188304881459,
+      "greedy_mean": 206.99676989649578,
+      "num_episodes": 1004
     }
   ],
   "reinforce": [
@@ -97,90 +97,90 @@
       "lr": 0.0003,
       "gamma": 0.99,
       "entropy_coef": 0.01,
-      "mean_last20": 96.35036455279332,
-      "greedy_mean": -135.86441740980658,
-      "num_episodes": 972
+      "mean_last20": 106.5734008104645,
+      "greedy_mean": -19.955441246478166,
+      "num_episodes": 971
     },
     {
       "exp": "reinforce_exp02",
       "lr": 0.0001,
       "gamma": 0.99,
       "entropy_coef": 0.01,
-      "mean_last20": 96.34642975930461,
-      "greedy_mean": -175.68241484188502,
-      "num_episodes": 972
+      "mean_last20": 102.20474015735957,
+      "greedy_mean": -33.998251907893895,
+      "num_episodes": 973
     },
     {
       "exp": "reinforce_exp03",
       "lr": 0.001,
       "gamma": 0.99,
       "entropy_coef": 0.01,
-      "mean_last20": 96.35036455279334,
-      "greedy_mean": -80.5007651853189,
-      "num_episodes": 972
+      "mean_last20": 99.44109663403518,
+      "greedy_mean": -51.68388855462977,
+      "num_episodes": 973
     },
     {
       "exp": "reinforce_exp04",
       "lr": 0.0003,
       "gamma": 0.95,
       "entropy_coef": 0.01,
-      "mean_last20": 96.35036455279332,
-      "greedy_mean": -135.86441740980658,
-      "num_episodes": 972
+      "mean_last20": 106.5734008104645,
+      "greedy_mean": -19.955441246478166,
+      "num_episodes": 971
     },
     {
       "exp": "reinforce_exp05",
       "lr": 0.0003,
       "gamma": 0.99,
       "entropy_coef": 0.001,
-      "mean_last20": 96.35036455279332,
-      "greedy_mean": -223.6856277429149,
-      "num_episodes": 972
+      "mean_last20": 102.727449815299,
+      "greedy_mean": -64.12206844299114,
+      "num_episodes": 973
     },
     {
       "exp": "reinforce_exp06",
       "lr": 0.0003,
       "gamma": 0.99,
       "entropy_coef": 0.05,
-      "mean_last20": 96.35036455279332,
-      "greedy_mean": -151.70120476050266,
-      "num_episodes": 972
+      "mean_last20": 99.69043966452068,
+      "greedy_mean": -57.18400206249855,
+      "num_episodes": 975
     },
     {
       "exp": "reinforce_exp07",
       "lr": 0.0003,
       "gamma": 0.99,
       "entropy_coef": 0.01,
-      "mean_last20": 98.09715450058428,
-      "greedy_mean": -182.80813820429267,
-      "num_episodes": 971
+      "mean_last20": 95.9706687943452,
+      "greedy_mean": -24.738795861570328,
+      "num_episodes": 973
     },
     {
       "exp": "reinforce_exp08",
       "lr": 0.0003,
       "gamma": 0.99,
       "entropy_coef": 0.01,
-      "mean_last20": 96.34636455279333,
-      "greedy_mean": -193.2571262537185,
-      "num_episodes": 972
+      "mean_last20": 102.90178423296376,
+      "greedy_mean": -39.716158914699314,
+      "num_episodes": 973
     },
     {
       "exp": "reinforce_exp09",
       "lr": 0.0005,
       "gamma": 0.99,
       "entropy_coef": 0.01,
-      "mean_last20": 96.35436455279333,
-      "greedy_mean": -138.73671276192016,
-      "num_episodes": 972
+      "mean_last20": 101.61987423257804,
+      "greedy_mean": -33.41371721825016,
+      "num_episodes": 973
     },
     {
       "exp": "reinforce_exp10",
       "lr": 0.0003,
       "gamma": 0.995,
       "entropy_coef": 0.01,
-      "mean_last20": 96.35036455279332,
-      "greedy_mean": -135.86441740980658,
-      "num_episodes": 972
+      "mean_last20": 106.5734008104645,
+      "greedy_mean": -19.955441246478166,
+      "num_episodes": 971
     }
   ],
   "a2c": [
@@ -189,26 +189,26 @@
       "lr": 0.0003,
       "gamma": 0.99,
       "entropy_coef": 0.01,
-      "mean_last20": 192.356559292499,
-      "greedy_mean": 192.15143690580894,
-      "num_episodes": 999
+      "mean_last20": 228.2103869661296,
+      "greedy_mean": 228.22229557334185,
+      "num_episodes": 1003
     },
     {
       "exp": "a2c_exp02",
       "lr": 0.0001,
       "gamma": 0.99,
       "entropy_coef": 0.01,
-      "mean_last20": 213.89164803894587,
-      "greedy_mean": 192.15143690580894,
-      "num_episodes": 983
+      "mean_last20": 215.54423396461215,
+      "greedy_mean": 192.569611301027,
+      "num_episodes": 984
     },
     {
       "exp": "a2c_exp03",
       "lr": 0.001,
       "gamma": 0.99,
       "entropy_coef": 0.01,
-      "mean_last20": 197.62844314822172,
-      "greedy_mean": 197.7272675317475,
+      "mean_last20": 69.21248645162174,
+      "greedy_mean": -104.06219143165292,
       "num_episodes": 1008
     },
     {
@@ -216,35 +216,35 @@
       "lr": 0.0003,
       "gamma": 0.95,
       "entropy_coef": 0.01,
-      "mean_last20": 204.0064561947914,
-      "greedy_mean": 197.7272675317475,
-      "num_episodes": 1001
+      "mean_last20": 222.21148140862562,
+      "greedy_mean": 223.40436732811136,
+      "num_episodes": 1004
     },
     {
       "exp": "a2c_exp05",
       "lr": 0.0003,
       "gamma": 0.99,
       "entropy_coef": 0.001,
-      "mean_last20": 203.8205062886963,
-      "greedy_mean": 204.35664905922218,
-      "num_episodes": 1001
+      "mean_last20": 230.72600660351378,
+      "greedy_mean": 228.22229557334185,
+      "num_episodes": 1003
     },
     {
       "exp": "a2c_exp06",
       "lr": 0.0003,
       "gamma": 0.99,
       "entropy_coef": 0.05,
-      "mean_last20": 195.27801823065792,
-      "greedy_mean": 204.35664905922218,
-      "num_episodes": 1000
+      "mean_last20": -22.259829358028636,
+      "greedy_mean": -91.53218404362056,
+      "num_episodes": 1003
     },
     {
       "exp": "a2c_exp07",
       "lr": 0.0003,
       "gamma": 0.99,
       "entropy_coef": 0.01,
-      "mean_last20": 192.38454593991713,
-      "greedy_mean": 192.15143690580894,
+      "mean_last20": 225.73218160002244,
+      "greedy_mean": 226.67892706904757,
       "num_episodes": 1006
     },
     {
@@ -252,27 +252,27 @@
       "lr": 0.0003,
       "gamma": 0.99,
       "entropy_coef": 0.01,
-      "mean_last20": 214.10959298949427,
-      "greedy_mean": 192.15143690580894,
-      "num_episodes": 991
+      "mean_last20": 223.28370365968254,
+      "greedy_mean": 192.569611301027,
+      "num_episodes": 993
     },
     {
       "exp": "a2c_exp09",
       "lr": 0.0005,
       "gamma": 0.99,
       "entropy_coef": 0.01,
-      "mean_last20": 200.74627000130522,
-      "greedy_mean": 201.74664966027385,
-      "num_episodes": 1003
+      "mean_last20": 216.9417921922382,
+      "greedy_mean": 225.17433157380088,
+      "num_episodes": 1005
     },
     {
       "exp": "a2c_exp10",
       "lr": 0.0003,
       "gamma": 0.995,
       "entropy_coef": 0.01,
-      "mean_last20": 192.19673571267433,
-      "greedy_mean": 192.15143690580894,
-      "num_episodes": 1000
+      "mean_last20": 230.05670352488625,
+      "greedy_mean": 226.53436732811141,
+      "num_episodes": 1004
     }
   ],
   "ppo": [
@@ -281,53 +281,53 @@
       "lr": 0.0003,
       "gamma": 0.99,
       "entropy_coef": 0.01,
-      "mean_last20": 205.0599383043754,
-      "greedy_mean": 192.15143690580894,
-      "num_episodes": 1008
+      "mean_last20": 201.75900622386416,
+      "greedy_mean": 190.77741607202313,
+      "num_episodes": 1009
     },
     {
       "exp": "ppo_exp02",
       "lr": 0.0001,
       "gamma": 0.99,
       "entropy_coef": 0.01,
-      "mean_last20": 197.48688727916792,
-      "greedy_mean": 194.84645554190394,
-      "num_episodes": 1004
+      "mean_last20": 224.19497156100638,
+      "greedy_mean": 225.17433157380088,
+      "num_episodes": 1006
     },
     {
       "exp": "ppo_exp03",
       "lr": 0.001,
       "gamma": 0.99,
       "entropy_coef": 0.01,
-      "mean_last20": 201.67024017420718,
-      "greedy_mean": 201.5661393024857,
-      "num_episodes": 1011
+      "mean_last20": 221.95777707324183,
+      "greedy_mean": 223.40436732811136,
+      "num_episodes": 1012
     },
     {
       "exp": "ppo_exp04",
       "lr": 0.0003,
       "gamma": 0.95,
       "entropy_coef": 0.01,
-      "mean_last20": 208.23709353425224,
-      "greedy_mean": 210.02634578827224,
-      "num_episodes": 1010
+      "mean_last20": 233.78538214503595,
+      "greedy_mean": 246.1806566648298,
+      "num_episodes": 1009
     },
     {
       "exp": "ppo_exp05",
       "lr": 0.0003,
       "gamma": 0.99,
       "entropy_coef": 0.001,
-      "mean_last20": 192.26834708548162,
-      "greedy_mean": 192.15143690580894,
-      "num_episodes": 1010
+      "mean_last20": 190.8991119441858,
+      "greedy_mean": 190.77741607202313,
+      "num_episodes": 1009
     },
     {
       "exp": "ppo_exp06",
       "lr": 0.0003,
       "gamma": 0.99,
       "entropy_coef": 0.05,
-      "mean_last20": 200.1247027377837,
-      "greedy_mean": 194.84645554190394,
+      "mean_last20": 223.5850525343338,
+      "greedy_mean": 224.93229557334175,
       "num_episodes": 1009
     },
     {
@@ -335,35 +335,35 @@
       "lr": 0.0003,
       "gamma": 0.99,
       "entropy_coef": 0.01,
-      "mean_last20": 196.58136343592477,
-      "greedy_mean": 197.7272675317475,
-      "num_episodes": 994
+      "mean_last20": 224.5017873048765,
+      "greedy_mean": 224.93229557334175,
+      "num_episodes": 1009
     },
     {
       "exp": "ppo_exp08",
       "lr": 0.0003,
       "gamma": 0.99,
       "entropy_coef": 0.01,
-      "mean_last20": 202.05161868440752,
-      "greedy_mean": 201.74664966027385,
-      "num_episodes": 1006
+      "mean_last20": 223.70929121891123,
+      "greedy_mean": 224.90516096799996,
+      "num_episodes": 1007
     },
     {
       "exp": "ppo_exp09",
       "lr": 0.0005,
       "gamma": 0.99,
       "entropy_coef": 0.01,
-      "mean_last20": 195.48850409328477,
-      "greedy_mean": 184.20595599391777,
-      "num_episodes": 1008
+      "mean_last20": 206.37841696880406,
+      "greedy_mean": 224.93229557334175,
+      "num_episodes": 1009
     },
     {
       "exp": "ppo_exp10",
       "lr": 0.0003,
       "gamma": 0.995,
       "entropy_coef": 0.01,
-      "mean_last20": 204.9868613194617,
-      "greedy_mean": 192.15143690580894,
+      "mean_last20": 194.89356987889954,
+      "greedy_mean": 193.42741607202316,
       "num_episodes": 1009
     }
   ]

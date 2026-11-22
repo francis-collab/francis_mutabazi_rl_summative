@@ -64,6 +64,7 @@ class RwandaCropGuardEnv(gym.Env):
         self._current_plot=0
         self._chemical=0; self._organic=0; self._labour=0; self._water=0
         self._disease=np.zeros(6,dtype=np.float32)
+        self._disease_onset=np.arange(10, 16, dtype=np.int32)  # placeholder; set in reset
         self._moisture=np.zeros(6,dtype=np.float32)
         self._weather=.5; self._yield_risk=0.
         self._inspected=np.zeros(6,dtype=bool)
@@ -93,15 +94,15 @@ class RwandaCropGuardEnv(gym.Env):
         mean_disease = float(np.mean(self._disease))
         # Inspect always allowed (re-inspect has a small reward penalty).
         mask[0] = self._labour > 0
-        # Treatments only when resources exist and disease is meaningful.
-        mask[1] = self._organic > 0 and self._labour > 0 and sev >= 0.10
-        mask[2] = self._chemical > 0 and self._labour > 0 and sev >= 0.16
-        mask[3] = self._water > 0 and self._labour > 0 and mean_moisture < 0.78
-        # Circulation is never locked after the first tour.
-        mask[4] = True
+        # Treat as soon as disease is present on the current plot (and not yet cured).
+        untreated = not bool(self._treated[p])
+        mask[1] = self._organic > 0 and self._labour > 0 and sev >= 0.05 and untreated
+        mask[2] = self._chemical > 0 and self._labour > 0 and sev >= 0.10 and untreated
+        mask[3] = self._water > 0 and self._labour > 0 and mean_moisture < 0.80
+        mask[4] = True  # MOVE always available — agent should go to sick plots
         mask[5] = (not self._alerted and self._labour >= 2 and
-                   (mean_disease >= 0.16 or
-                    self._step_count / max(1, self.season_length) >= 0.80))
+                   (mean_disease >= 0.14 or
+                    self._step_count / max(1, self.season_length) >= 0.72))
         mask[6] = True  # WAIT always available
         mask[7] = self._step_count >= self.HARVEST_OPEN_DAY
         if self._step_count >= self.season_length - 1:
@@ -159,15 +160,21 @@ class RwandaCropGuardEnv(gym.Env):
         self._organic=self.max_organic
         self._labour=self.max_labour
         self._water=self.max_water
-        self._disease=self._rng.uniform(.035,.16,6).astype(np.float32)
-        self._moisture=self._rng.uniform(.58,.86,6).astype(np.float32)
-        self._weather=float(self._rng.uniform(.58,.82))
-        self._yield_risk=0.
-        self._inspected=np.zeros(6,dtype=bool)
-        self._treated=np.zeros(6,dtype=bool)
-        self._last_action=None; self._episode_reward=0.
-        self._harvested=False; self._alerted=False
-        self._steps_on_plot=0
+        # Disease starts near zero; each plot gets an onset day in [10, 60].
+        self._disease = self._rng.uniform(0.0, 0.03, 6).astype(np.float32)
+        self._disease_onset = np.sort(
+            self._rng.integers(10, 61, size=6)
+        ).astype(np.int32)  # staggered: one plot after another through day 60
+        self._moisture = self._rng.uniform(0.58, 0.86, 6).astype(np.float32)
+        self._weather = float(self._rng.uniform(0.58, 0.82))
+        self._yield_risk = 0.
+        self._inspected = np.zeros(6, dtype=bool)
+        self._treated = np.zeros(6, dtype=bool)  # once True, disease never returns on that plot
+        self._last_action = None
+        self._episode_reward = 0.
+        self._harvested = False
+        self._alerted = False
+        self._steps_on_plot = 0
         return self._get_obs(),self._get_info()
 
     def _final_yield(self):
@@ -194,82 +201,121 @@ class RwandaCropGuardEnv(gym.Env):
                 self._labour-=1
                 if not self._inspected[p]:
                     self._inspected[p]=True
-                    reward += 1.0 + .8*sev*mid
+                    reward += 1.2 + 1.0 * sev * (0.5 + 0.5 * early)
                 else:
-                    reward -= .30
+                    # Re-inspecting the same plot is wasteful — agent should move or treat.
+                    reward -= 1.25
             else:
-                reward -= .5
+                reward -= 0.5
 
         elif action==1:  # ORGANIC treatment on selected plot
-            if self._organic>0 and self._labour>0:
-                self._organic-=1; self._labour-=1
-                if sev < .10:
-                    reward -= 1.0
+            if self._organic > 0 and self._labour > 0:
+                self._organic -= 1
+                self._labour -= 1
+                if self._treated[p]:
+                    reward -= 0.8  # already cured — waste
+                elif sev < 0.05:
+                    reward -= 0.6
                 else:
-                    reduction=.24+.05*early
-                    self._disease[p]=max(0.,sev-reduction)
-                    self._moisture[p]=min(1.,moist+.045)
-                    self._treated[p]=True
-                    reward += 1.3+4.5*sev*(.4+.6*mid)
-                    if self._inspected[p]: reward += .5
+                    # Permanent cure: disease cleared and never returns on this plot.
+                    self._disease[p] = 0.0
+                    self._moisture[p] = min(1.0, moist + 0.045)
+                    self._treated[p] = True
+                    # Treating immediately is the highest-value action in the mission.
+                    reward += 5.0 + 8.0 * sev * (0.7 + 0.3 * early)
+                    if self._inspected[p]:
+                        reward += 1.0
             else:
-                reward -= .9
+                reward -= 0.9
 
         elif action==2:  # CHEMICAL treatment on selected plot
-            if self._chemical>0 and self._labour>0:
-                self._chemical-=1; self._labour-=1
-                if sev < .16:
-                    reward -= 1.2
+            if self._chemical > 0 and self._labour > 0:
+                self._chemical -= 1
+                self._labour -= 1
+                if self._treated[p]:
+                    reward -= 1.0
+                elif sev < 0.08:
+                    reward -= 0.9
                 else:
-                    self._disease[p]=max(0.,sev-.40)
-                    self._treated[p]=True
-                    reward += 1.5+5.0*sev*(.4+.6*mid)
-                    if self._inspected[p]: reward += .6
+                    self._disease[p] = 0.0
+                    self._treated[p] = True  # permanent cure
+                    reward += 5.5 + 8.5 * sev * (0.7 + 0.3 * early)
+                    if self._inspected[p]:
+                        reward += 1.1
             else:
                 reward -= 1.0
 
         elif action==3:  # IRRIGATE all six plots from the shared water point
-            if self._water>0 and self._labour>0:
-                self._water-=1
-                self._labour-=1
-                dryness=np.maximum(0.,.64-self._moisture)
-                gains=np.minimum(.20,1.-self._moisture)
-                self._moisture=np.clip(self._moisture+gains,0.,1.)
-                mean_need=float(np.mean(dryness))
-                mean_gain=float(np.mean(gains))
-                reward += .45+5.0*mean_need+1.8*sunny*mean_need+.8*mean_gain
-                if float(np.mean(self._moisture))>.82:
-                    reward -= .65
+            if self._water > 0 and self._labour > 0:
+                self._water -= 1
+                self._labour -= 1
+                dryness = np.maximum(0., 0.64 - self._moisture)
+                gains = np.minimum(0.20, 1. - self._moisture)
+                self._moisture = np.clip(self._moisture + gains, 0., 1.)
+                mean_need = float(np.mean(dryness))
+                mean_gain = float(np.mean(gains))
+                reward += 0.45 + 5.0 * mean_need + 1.8 * sunny * mean_need + 0.8 * mean_gain
+                if 45 <= self._step_count <= 65:
+                    reward += 2.2 + 2.5 * sunny
+                elif self._step_count < 30:
+                    reward -= 0.4
+                elif self._step_count > 75:
+                    reward -= 0.5
+                if float(np.mean(self._moisture)) > 0.85:
+                    reward -= 0.65
             else:
-                reward -= .9
+                reward -= 0.9
 
         elif action==4:  # MOVE_NEXT through the farm's passage network
-            # Always allow circulation; large bonus when other plots need care.
-            other_disease = float(np.max(np.delete(self._disease, p))) if self.num_plots > 1 else 0.0
+            # Leaving a sick untreated plot is a serious mistake — treat first.
+            cur_sev = float(self._disease[p])
+            cur_needs = cur_sev >= 0.05 and not bool(self._treated[p])
+            if cur_needs:
+                # Large penalty for walking away without treating.
+                reward -= 2.5 + 4.0 * cur_sev
             self._current_plot = (p + 1) % 6
             self._steps_on_plot = 0
-            if other_disease >= 0.10:
-                reward += 0.70 + 2.2 * other_disease
-            elif not self._inspected[self._current_plot] and mid > 0.25:
+            dest = self._current_plot
+            dest_sev = float(self._disease[dest])
+            dest_needs = dest_sev >= 0.05 and not bool(self._treated[dest])
+            others = [
+                float(self._disease[i])
+                for i in range(6)
+                if i != p and not bool(self._treated[i]) and float(self._disease[i]) >= 0.05
+            ]
+            max_other = max(others) if others else 0.0
+            if dest_needs:
+                reward += 1.5 + 2.5 * dest_sev  # arrived where treatment is needed
+            elif max_other >= 0.05 and not cur_needs:
+                reward += 0.45 + 1.0 * max_other  # only if we did not abandon a sick plot
+            elif not self._inspected[dest]:
                 reward += 0.35
             else:
-                reward += 0.12
+                reward += 0.08
 
         elif action==5:  # One community alert per season, only when justified
             if self._alerted:
                 reward -= 2.0
-            elif self._labour<2:
-                reward -= .7
+            elif self._labour < 2:
+                reward -= 0.7
             else:
-                mean_disease=float(np.mean(self._disease))
-                late=day_frac>=.80
-                justified=(mean_disease>=.16) or late
+                mean_disease = float(np.mean(self._disease))
+                near_harvest = self._step_count >= 70
+                late = day_frac >= 0.72
+                justified = near_harvest or mean_disease >= 0.14
                 if justified:
-                    self._labour-=2
-                    self._alerted=True
-                    # Community response slows disease spread, but does not replace treatment.
-                    self._disease=np.maximum(0.,self._disease-.025)
-                    reward += (3.0 if late else 1.8) + .8*mean_disease
+                    self._labour -= 2
+                    self._alerted = True
+                    # Alert does not re-infect cured plots; only slows untreated disease slightly.
+                    for i in range(6):
+                        if not self._treated[i]:
+                            self._disease[i] = max(0.0, float(self._disease[i]) - 0.02)
+                    if near_harvest:
+                        reward += 5.0 + 1.0 * mean_disease
+                    elif late:
+                        reward += 3.2 + 0.9 * mean_disease
+                    else:
+                        reward += 1.5 + 0.7 * mean_disease
                 else:
                     reward -= 1.25
 
@@ -291,38 +337,70 @@ class RwandaCropGuardEnv(gym.Env):
                 # Coverage: treating multiple plots during the season is rewarded.
                 reward += 10.0 * float(np.mean(self._treated.astype(np.float32)))
 
-        # Anti-camping: if other plots are sick, staying put is costly.
+        # Anti-camping only if the current plot does NOT need treatment.
+        # If this plot is sick and untreated, the agent should stay and apply organic/chemical.
         if not terminated and action != 4:
             self._steps_on_plot = getattr(self, "_steps_on_plot", 0) + 1
-            other_disease = float(np.max(np.delete(self._disease, self._current_plot))) if self.num_plots > 1 else 0.0
-            if other_disease >= 0.12 and self._steps_on_plot >= 2:
-                reward -= (0.45 + 0.90 * other_disease) * min(4, self._steps_on_plot - 1)
+            cur_needs = (float(self._disease[self._current_plot]) >= 0.05
+                         and not bool(self._treated[self._current_plot]))
+            if not cur_needs:
+                other_disease = float(np.max(np.delete(self._disease, self._current_plot))) if self.num_plots > 1 else 0.0
+                if other_disease >= 0.12 and self._steps_on_plot >= 2:
+                    reward -= (0.45 + 0.90 * other_disease) * min(4, self._steps_on_plot - 1)
 
         # Small end-of-season urgency; avoids spending the final days farming alert rewards.
         if not terminated and self._step_count >= self.HARVEST_OPEN_DAY:
             reward -= 1.0
         if not terminated:
-            # Crop stress and disease progress by one simulated day.
-            weather_stress=1.+.18*(1.-self._weather)
-            spread=self._rng.uniform(.0012,.006,6)*weather_stress
-            neighbour=np.roll(self._disease,1)+np.roll(self._disease,-1)
-            self._disease=np.clip(self._disease+spread+.006*neighbour/2.,0.,1.)
-            evap=self._rng.uniform(.007,.018,6)*(1.10+.35*sunny)
-            self._moisture=np.clip(self._moisture-evap,0.,1.)
-            # Weather index: high values mean clear/hot, low values mean cloudy/wet.
-            self._weather=float(np.clip(self._weather+self._rng.normal(0,.035),.12,.96))
-            mean_d = float(np.mean(self._disease))
-            max_d = float(np.max(self._disease))
-            # Untreated disease (especially the worst plot) raises yield risk faster.
+            # --- Staggered disease onset (days 10–60), permanent cure after treatment ---
+            for i in range(6):
+                if self._treated[i]:
+                    # Cured plots stay clean forever.
+                    self._disease[i] = 0.0
+                    continue
+                onset = int(self._disease_onset[i])
+                if self._step_count + 1 >= onset:
+                    # First infection day: seed a visible infection.
+                    if self._disease[i] < 0.05 and self._step_count + 1 == onset:
+                        self._disease[i] = float(self._rng.uniform(0.12, 0.22))
+                    else:
+                        # Natural progression only on untreated infected plots.
+                        weather_stress = 1.0 + 0.18 * (1.0 - self._weather)
+                        growth = float(self._rng.uniform(0.008, 0.022)) * weather_stress
+                        self._disease[i] = min(1.0, float(self._disease[i]) + growth)
+
+            evap = self._rng.uniform(0.007, 0.018, 6) * (1.10 + 0.35 * sunny)
+            self._moisture = np.clip(self._moisture - evap, 0., 1.)
+
+            # Days 45–65: hot sunny peak (encourages mid-season irrigation).
+            if 45 <= self._step_count <= 65:
+                self._weather = float(np.clip(
+                    self._weather + self._rng.uniform(0.02, 0.06), 0.68, 0.96))
+            else:
+                self._weather = float(np.clip(
+                    self._weather + self._rng.normal(0, 0.035), 0.12, 0.96))
+
+            # Only untreated disease counts toward risk / penalties.
+            active = np.array([
+                0.0 if self._treated[i] else float(self._disease[i]) for i in range(6)
+            ], dtype=np.float32)
+            mean_d = float(np.mean(active))
+            max_d = float(np.max(active))
             risk_inc = 0.07 * mean_d + 0.04 * float(np.mean(1.0 - self._moisture)) + 0.03 * max_d
             self._yield_risk = min(1.0, self._yield_risk + risk_inc)
-            # Stronger per-step cost for leaving disease untreated on any plot.
-            reward -= (0.55 * mean_d + 0.35 * max_d) * (0.40 + 0.60 * day_frac)
-            self._step_count+=1
-            if self._step_count>=self.season_length:
-                # The agent had its final decision on day 89; no harvest means a failed season.
-                truncated=True
-                reward-=35.0
+
+            # Heavy cost for leaving active disease untreated — pushes early organic care.
+            early_weight = 0.85 + 0.55 * early
+            reward -= (0.85 * mean_d + 0.55 * max_d) * early_weight
+
+            # Bonus for standing on a sick untreated plot (ready to treat).
+            if not self._treated[self._current_plot] and self._disease[self._current_plot] >= 0.05:
+                reward += 0.25
+
+            self._step_count += 1
+            if self._step_count >= self.season_length:
+                truncated = True
+                reward -= 35.0
 
         self._episode_reward+=reward
         return self._get_obs(),float(reward),terminated,truncated,self._get_info()

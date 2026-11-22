@@ -1,6 +1,6 @@
 {
   "source_experiment": "ppo_exp04",
   "selected_algorithm": "PPO",
-  "greedy_mean": 210.02634578827224,
+  "greedy_mean": 246.1806566648298,
   "note": "Shared overall best across REINFORCE / A2C / PPO (ranked by greedy mean return)."
 }
