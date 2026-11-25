@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RwandaCropGuard — Village Farm Simulation</title>
+<title>RwandaCropGuard — Village Farm (v3 altitude+disease fix)</title>
 <style>
 :root{--panel:rgba(8,28,18,.94);--line:rgba(160,210,150,.4);--green:#2a8f40;--text:#eef8eb}
 *{box-sizing:border-box}
@@ -37,7 +37,7 @@ button:hover{background:#35a94c}
 </style>
 </head>
 <body>
-<div id="loading">Building RwandaCropGuard farm…</div>
+<div id="loading">Building RwandaCropGuard farm… v3</div>
 <div id="stage"></div>
 
 <div id="hud" class="panel">
@@ -46,7 +46,7 @@ button:hover{background:#35a94c}
   <div id="event"></div>
   <div class="legend">
     <b>Sprays:</b> 💙 Blue = irrigation (all plots) · 🩵 Cyan = chemical · 💚 Green = organic<br>
-    Yellow/brown crops = disease · Larger plants = growth
+    Yellow/brown <b>crops</b> = disease on that plot only · Deeper green crops = irrigation / moist · Larger plants = growth
   </div>
 </div>
 <div id="weatherBadge" class="panel">🌤️ Weather</div>
@@ -350,7 +350,7 @@ function makeDrone() {
   return g;
 }
 const agent = makeDrone();
-agent.position.set(-8.5, 0.35, 6.2); // flies slightly above ground along paths
+agent.position.set(-8.5, 1.35, 6.2); // DRONE_ALT: clear of crops and spray particles
 scene.add(agent);
 
 const villagers = [];
@@ -492,7 +492,7 @@ function scatterParticles(p, center, t, spread = 1.0) {
   for (let i = 0; i < p.count; i++) {
     const a = (i / p.count) * Math.PI * 2 + t * 0.005;
     const r = (0.15 + (i % 9) * 0.1) * spread + Math.sin(t * 0.01 + i) * 0.08;
-    const h = 0.25 + (i % 7) * 0.12 + Math.abs(Math.sin(t * 0.014 + i * 0.4)) * 0.55;
+    const h = 0.35 + (i % 7) * 0.10 + Math.abs(Math.sin(t * 0.014 + i * 0.4)) * 0.45; // below drone (1.35)
     arr[i*3]   = center.x + Math.cos(a) * r;
     arr[i*3+1] = h;
     arr[i*3+2] = center.z + Math.sin(a) * r;
@@ -510,31 +510,56 @@ function hideActionParticles() {
 function updateCrops(f) {
   const harvested = !!f.harvested;
   const dis = f.disease || [], moist = f.moisture || [];
+  const irrigating = (f.action_name === 'IRRIGATE') || irrigationActive;
+  const day = f.day ?? 0;
+  const sunny = (f.weather ?? 0.5) >= 0.68 || (day >= 45 && day <= 65);
+
   for (let i = 0; i < 6; i++) {
     cropGroups[i].visible = !harvested;
     const growth = f.crop_growth?.[i] ?? 0.25;
-    const disease = dis[i] ?? 0;
+    const diseaseRaw = dis[i] ?? 0;
+    // Only show disease when clearly infected (avoids flicker on residual noise).
+    const disease = diseaseRaw >= 0.10 ? diseaseRaw : 0;
     const water = moist[i] ?? 0.65;
-    const wet = Math.max(0, water - 0.4);
-    const sick = disease;
+    const wet = Math.max(0, water - 0.45);
+
+    // Soil: stable brown; slightly darker/richer when wet from irrigation — never disease-yellow.
     soilMeshes[i].material.color.setRGB(
-      0.42 + sick * 0.28 - wet * 0.1,
-      0.29 - sick * 0.1 + wet * 0.03,
-      0.18 + wet * 0.15 - sick * 0.06
+      0.42 - wet * 0.06,
+      0.29 + wet * 0.04,
+      0.18 + wet * 0.06
     );
+
     for (const plant of cropGroups[i].children) {
       const stage = Math.max(0.15, growth);
-      const wilt = 1 - disease * 0.4 - Math.max(0, 0.35 - water) * 0.28;
-      const s = stage * wilt;
-      plant.scale.setScalar(s);
+      const wilt = 1 - disease * 0.45 - Math.max(0, 0.35 - water) * 0.22;
+      plant.scale.setScalar(stage * wilt);
+
       plant.traverse(obj => {
         if (obj.isMesh && obj.material && obj.userData.baseColor) {
           const base = obj.userData.baseColor;
-          obj.material.color.setRGB(
-            THREE.MathUtils.clamp(base.r + disease * 0.5, 0, 1),
-            THREE.MathUtils.clamp(base.g - disease * 0.4, 0.12, 1),
-            THREE.MathUtils.clamp(base.b - disease * 0.25, 0, 1)
-          );
+          let r = base.r, g = base.g, b = base.b;
+
+          // Disease: yellow-brown on THIS plot's crops only until treated (disease -> 0).
+          if (disease >= 0.10) {
+            const t = Math.min(1, disease);
+            r = THREE.MathUtils.clamp(base.r + 0.55 * t, 0, 1);
+            g = THREE.MathUtils.clamp(base.g - 0.35 * t, 0.12, 1);
+            b = THREE.MathUtils.clamp(base.b - 0.30 * t, 0, 1);
+          } else if (irrigating || water >= 0.72) {
+            // Irrigation / well-watered: richer green on crops (sunny mid-season still readable).
+            const lush = irrigating ? 0.22 : 0.12;
+            r = THREE.MathUtils.clamp(base.r - 0.05 * lush, 0, 1);
+            g = THREE.MathUtils.clamp(base.g + lush, 0, 1);
+            b = THREE.MathUtils.clamp(base.b - 0.02, 0, 1);
+          } else if (sunny && water < 0.40) {
+            // Hot dry stress: slight dulling without looking like disease.
+            r = THREE.MathUtils.clamp(base.r + 0.08, 0, 1);
+            g = THREE.MathUtils.clamp(base.g - 0.10, 0.15, 1);
+            b = THREE.MathUtils.clamp(base.b - 0.05, 0, 1);
+          }
+
+          obj.material.color.setRGB(r, g, b);
         }
       });
     }
@@ -568,7 +593,12 @@ function setWeather(f) {
 }
 
 function highlightPlot(idx) {
-  highlightMeshes.forEach((m, i) => { m.material.opacity = i === idx ? 0.4 : 0; });
+  // Soft cyan outline on click only — never auto-yellow on the agent plot
+  // (auto yellow made disease look like it jumped plot-to-plot every MOVE_NEXT).
+  highlightMeshes.forEach((m, i) => {
+    m.material.color.setHex(0x4fc3f7);
+    m.material.opacity = i === idx ? 0.22 : 0;
+  });
 }
 
 function updatePlotRows(f) {
@@ -650,7 +680,8 @@ function applyFrame(f, t = performance.now()) {
   else if (f.action_name !== 'ALERT_COMMUNITY') beginRoute(plotNode[plot]);
 
   setActionEffect(f.action_name || '', plot, f, t);
-  updateCrops(f); setWeather(f); highlightPlot(plot); updatePlotRows(f);
+  updateCrops(f); setWeather(f); updatePlotRows(f);
+  // no auto highlightPlot(plot) — disease is crop colour only
 
   const day = f.day ?? 0, season = f.season_length ?? 90, action = f.action_name || '—';
   const d = f.disease?.[plot] ?? 0, m = f.moisture?.[plot] ?? 0, g = f.crop_growth?.[plot] ?? 0;
@@ -691,9 +722,8 @@ function animate(t) {
     const old = agent.position.clone();
     routeProgress = Math.min(routeDistance, routeProgress + routeSpeed * dt);
     const p = routePosition(routeProgress);
-    agent.position.set(p.x, 0.35, p.z); // drone altitude
-    // gentle rotor bob
-    agent.position.y = 0.35 + Math.sin(t * 0.01) * 0.03;
+    agent.position.set(p.x, 1.35, p.z);
+    agent.position.y = 1.35 + Math.sin(t * 0.012) * 0.05; // DRONE_ALT
     if (!agent.userData.isDrone) moveHumanoid(agent, new THREE.Vector3(p.x - old.x, 0, p.z - old.z), t);
     else agent.rotation.y = Math.atan2(p.x - old.x, p.z - old.z) || agent.rotation.y;
   } else {
@@ -765,7 +795,7 @@ document.getElementById('play').addEventListener('click', () => {
 });
 document.getElementById('reset').addEventListener('click', () => {
   playing = false; frameIndex = 0; currentNav = 'home';
-  agent.position.set(nav.home.x, 0.35, nav.home.z);
+  agent.position.set(nav.home.x, 1.35, nav.home.z); // DRONE_ALT
   routePoints = []; routeDistance = 0; routeProgress = 0;
   villagers.forEach(v => { v.visible = false; });
   hideActionParticles();
