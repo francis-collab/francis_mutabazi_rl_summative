@@ -18,7 +18,7 @@
 6. [Training & hyperparameter study](#6-training--hyperparameter-study)
 7. [Evaluation & live play](#7-evaluation--live-play)
 8. [Visualization (2D & 3D)](#8-visualization-2d--3d)
-9. [Video demonstration checklist](#9-video-demonstration-checklist)
+9. [Video demonstration](#9-video-demonstration)
 10. [Tests](#10-tests)
 11. [Design notes](#11-design-notes)
 
@@ -266,17 +266,9 @@ Do **not** open the HTML via `file://` under WSL; use the local HTTP server so t
 
 ---
 
-## 9. Video demonstration checklist
+## 9. Video demonstration
 
-Assignment asks for ~5 minutes, camera on, full screen, ~¾ showing the agent in the environment:
-
-1. State the problem briefly (Rwandan farm, disease, water, harvest).  
-2. State agent behaviour and the reward structure.  
-3. State the objective (maximize seasonal yield / return under constraints).  
-4. Show directory navigation and `uv run` execution in the terminal.  
-5. Run best agent with GUI **and** terminal verbose (`play` mode).  
-6. Narrate what the agent is doing (inspect → treat → irrigate → alert → harvest).  
-7. Keep the live run the majority of the video length.
+Link to the Demo: TBD
 
 Suggested command for recording:
 
@@ -305,7 +297,7 @@ Coverage includes six-plot layout, observation shape, action masking, irrigation
 - **Same environment for all algorithms** — comparison is on learning method and hyperparameters, not on mismatched envs.  
 - **Action masking** reduces illegal or wasteful actions during training and play (e.g. harvest before maturity, treat with empty stock).  
 - **TorchRL** is used for the RL loops; the environment itself stays plain Gymnasium so demo mode works without heavy imports.  
-- **uv** is mandatory: `pyproject.toml` + `uv.lock` so markers never hand-install dependencies.  
+- **uv** is used: `pyproject.toml` + `uv.lock` so you don't need to hand-install dependencies.  
 
 ---
 
