@@ -75,7 +75,6 @@ francis_mutabazi_rl_summative/
 │
 ├── logs/                   # full_experiment_summary.json
 ├── tests/                  # Environment regression tests
-└── notebooks/              # Kaggle GPU notebook to serve as proof of running experiments
 ```
 
 ---
@@ -184,8 +183,8 @@ Single-run examples:
 ```bash
 uv run main.py --mode train_dqn --total-steps 80000 --device cpu
 uv run main.py --mode train_pg --algorithm ppo --total-steps 80000 --device cpu
-uv run main.py --mode train_pg --algorithm a2c --total-steps 80000
-uv run main.py --mode train_pg --algorithm reinforce --total-steps 80000
+uv run main.py --mode train_pg --algorithm a2c --total-steps 80000 --device cpu
+uv run main.py --mode train_pg --algorithm reinforce --total-steps 80000 --device cpu
 ```
 
 ---
@@ -217,8 +216,6 @@ Artifacts per run (under `models/dqn/` or `models/pg/<algo>_expXX/`):
 Best checkpoints are summarized under `models/*/best_model/` and `logs/full_experiment_summary.json`.
 
 > **Note:** If the environment observation size or reward rules change, old checkpoints are not comparable. Rerun the study before reporting final numbers.
-
-Optional GPU path: `notebooks/` Kaggle notebook with accelerator + internet, then download results zip.
 
 ---
 
