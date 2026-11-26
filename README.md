@@ -266,17 +266,6 @@ Do **not** open the HTML via `file://` under WSL; use the local HTTP server so t
 ## 9. Video demonstration
 
 Link to the Demo: https://youtu.be/3sXW7OI9xLE
-
-Suggested command for recording:
-
-```bash
-uv run main.py --mode play \
-  --model models/dqn/best_model/dqn_model.pth \
-  --episodes 1 --viz 3d --delay 1.0
-```
-
-Then open the Three.js viewer and press **Play** so both terminal and 3D are visible.
-
 ---
 
 ## 10. Tests
