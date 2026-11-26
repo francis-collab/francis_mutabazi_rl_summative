@@ -266,6 +266,7 @@ Do **not** open the HTML via `file://` under WSL; use the local HTTP server so t
 ## 9. Video demonstration
 
 Link to the Demo: https://youtu.be/3sXW7OI9xLE
+
 ---
 
 ## 10. Tests
